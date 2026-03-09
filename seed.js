@@ -60,11 +60,23 @@ async function seed() {
 
     console.log(`Pusging ${boqRows.length} BOQ items and ${materialRows.length} Material items...`);
 
+    const dummyProjects = [
+        { project_name: "Proyek Fiber Jakarta Pusat" },
+        { project_name: "Proyek Jaringan Surabaya" },
+        { project_name: "Perawatan FAT Bandung" },
+        { project_name: "Instalasi Baru ODC Medan" },
+        { project_name: "Korektif Maintenance" }
+    ];
+
     // Clear existing items just in case (optional, we'll just insert)
     // Or upsert. But tables don't have constraints on name to use upsert easily.
     // Instead, let's delete all and reinsert.
     await supabase.from('master_boq').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('master_material').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+    await supabase.from('master_project').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+
+    console.log("Inserting projects...");
+    await supabase.from('master_project').insert(dummyProjects);
 
     // Insert in chunks of 500
     for (let i = 0; i < boqRows.length; i += 500) {
