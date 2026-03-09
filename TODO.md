@@ -2,22 +2,24 @@
 
 ## ✅ Yang sudah dilakukan:
 1. **Inisialisasi Proyek**: Membuat proyek Next.js dengan nama `pt-sachi-progress`.
-2. **Koneksi Supabase**: Membuat file `lib/supabase.ts`.
-3. **Koneksi Cloudflare R2**: Membuat file `lib/r2.ts`.
+2. **Koneksi Supabase**: Membuat file `src/lib/supabase.ts`.
+3. **Koneksi Cloudflare R2**: Membuat file `src/lib/r2.ts`.
+4. **Install Dependencies Tambahan**: Instalasi `telegraf`, `@supabase/supabase-js`, `@aws-sdk/client-s3`, `xlsx`.
+5. **Endpoint Telegram Bot**: Membuat endpoint webhook di `src/app/api/webhook/route.ts`.
+6. **Dashboard Web**: Membuat halaman dashboard moderen menggunakan Tailwind css di `src/app/dashboard/page.tsx`.
+7. **Environment Variables**: Membuat template `.env.local.example`.
+8. **Setup Supabase SQL**: Menyediakan script `supabase_schema.sql` untuk dijalankan di dashboard Supabase.
 
-## ⏳ Yang perlu dilanjutkan nanti:
-1. **Install Dependencies Tambahan**: 
-   Menjalankan perintah `npm install telegraf @supabase/supabase-js @aws-sdk/client-s3 xlsx` di dalam folder `pt-sachi-progress`.
-2. **Endpoint Telegram Bot**:
-   Membuat file `src/app/api/webhook/route.ts` atau `app/api/webhook/route.ts` untuk menangani logika bot Telegram.
-3. **Dashboard Web**:
-   Membuat file `src/app/dashboard/page.tsx` atau `app/dashboard/page.tsx` untuk menampilkan data dari Supabase dan gambar dari R2.
-4. **Environment Variables**:
-   Menyiapkan file `.env.local` untuk menyimpan key/token rahasia.
-5. **Setup Supabase SQL**:
-   Menjalankan query SQL untuk membuat tabel (`master_boq`, `master_material`, `laporan_kerja`, `bot_sessions`) dan view.
-6. **Push ke GitHub**:
-   Inisialisasi git dan push kode ke repository GitHub Anda.
+## ⏳ Yang perlu dilanjutkan berikutnya:
+1. **Atur Environment Variables**: 
+   Mengganti (rename) file `.env.local.example` menjadi `.env.local` dan mengisi nilai-nilai token dari Telegram, Supabase, dan Cloudflare.
+2. **Setup Tabel Database**:
+   Membuka Supabase, di menu SQL Editor jalankan seluruh perintah dari file `supabase_schema.sql`.
+3. **Sambungkan Bot Telegram**:
+   Menjalankan perintah API Telegram (seperti curl via browser) guna mengatur atau menyetel webhook ke URL publik yang Anda miliki (contoh: ngrok / vercel): 
+   `https://api.telegram.org/bot<TOKEN_ANDA>/setWebhook?url=<URL_ANDA>/api/webhook`
+4. **Push ke GitHub (Opsional)**:
+   Inisialisasi git repository agar progres dapat disimpan.
 
 ---
-*Catatan: Instalasi Next.js dasar sudah selesai, kita siap melanjutkan ke pemasangan library bot dan antarmuka web saat Anda siap!*
+*Catatan: Semua file dan kode yang diperlukan untuk bot Telegram dan Dashboard Web telah terpasang. Langkah selanjutnya lebih kepada konfigurasi server (mengisi variabel .env dan mengeksekusi script SQL).*
