@@ -32,20 +32,12 @@ bot.start(async (ctx) => {
         `Bot ini akan membantu Anda melaporkan bukti kerja lapangan atau manajemen material dengan cepat.\n\n` +
         `Pilih menu di bawah ini untuk memulai proses interaktif:`;
 
-    const logoUrl = process.env.NEXT_PUBLIC_SITE_URL
-        ? `${process.env.NEXT_PUBLIC_SITE_URL}/logo.png`
-        : "https://raw.githubusercontent.com/ptsachiofficial/pt-sachi-progress/main/public/logo.png";
-
     const inlineKeyboard = Markup.inlineKeyboard([
         [Markup.button.callback("📝 Laporan Pekerjaan (Progres)", "MENU_PROGRES")],
         [Markup.button.callback("📦 Manajemen Material (In/Out)", "MENU_MATERIAL")]
     ]);
 
-    try {
-        await ctx.replyWithPhoto({ url: logoUrl }, { caption: welcomeText, parse_mode: 'Markdown', ...inlineKeyboard });
-    } catch (e) {
-        await ctx.reply(welcomeText, { parse_mode: 'Markdown', ...inlineKeyboard });
-    }
+    await ctx.reply(welcomeText, { parse_mode: 'Markdown', ...inlineKeyboard });
 });
 
 bot.command('cancel', async (ctx) => {
