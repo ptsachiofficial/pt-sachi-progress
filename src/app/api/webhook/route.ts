@@ -142,6 +142,22 @@ bot.on("callback_query", async (ctx) => {
             return ctx.reply("✏️ Masukkan *Jumlah Barang* berupa angka:", { parse_mode: 'Markdown' });
         }
     }
+    // User manually types BOQ/Material if not found
+    if (data === "MANUAL_BOQ") {
+        const session = await getSession(telegram_id);
+        if (session.current_step === 'PROG_WAIT_SELECT_BOQ') {
+            await updateSession(telegram_id, 'PROG_WAIT_MANUAL_BOQ', session.data);
+            return ctx.reply("📝 Silakan ketik *Nama/Tipe Pekerjaan (BOQ)* yang dimaksud secara manual:", { parse_mode: 'Markdown' });
+        }
+    }
+
+    if (data === "MANUAL_MATITEM") {
+        const session = await getSession(telegram_id);
+        if (session.current_step === 'MAT_WAIT_SELECT_ITEM') {
+            await updateSession(telegram_id, 'MAT_WAIT_MANUAL_ITEM', session.data);
+            return ctx.reply("📝 Silakan ketik *Nama Material* tersebut secara manual:", { parse_mode: 'Markdown' });
+        }
+    }
 });
 
 // --- TEXT MESSAGES FOR STATES ---
@@ -157,13 +173,29 @@ bot.on('text', async (ctx) => {
     // -- STATE LAPORAN PROGRES --
     if (session.current_step === 'PROG_WAIT_SEARCH_BOQ') {
         const { data: boqs } = await supabase.from('master_boq').select('id, task_name').ilike('task_name', `%${text}%`).limit(8);
-        if (!boqs || boqs.length === 0) {
-            return ctx.reply(`Tidak ada tipe BOQ yang cocok dengan pencarian '${text}'. Coba ketik kata kunci lain:`);
+
+        const buttons = [];
+        if (boqs && boqs.length > 0) {
+            boqs.forEach(b => buttons.push([Markup.button.callback(b.task_name, `BOQ_${b.id}`)]));
         }
 
-        const buttons = boqs.map(b => [Markup.button.callback(b.task_name, `BOQ_${b.id}`)]);
-        await updateSession(telegram_id, 'PROG_WAIT_SELECT_BOQ', session.data);
-        return ctx.reply("Pilih BOQ yang sesuai:", Markup.inlineKeyboard(buttons));
+        // Selalu berikan opsi input manual jika tidak ketemu
+        buttons.push([Markup.button.callback("⚠️ Tidak Ada di Daftar (Ketik Manual)", "MANUAL_BOQ")]);
+
+        await updateSession(telegram_id, 'PROG_WAIT_SELECT_BOQ', { ...session.data, search_term: text });
+
+        if (!boqs || boqs.length === 0) {
+            return ctx.reply(`Pencarian '${text}' tidak ditemukan di database.`, Markup.inlineKeyboard(buttons));
+        } else {
+            return ctx.reply("Pilih jenis pekerjaan di bawah ini. Jika tidak ada, tekan tombol paling bawah:", Markup.inlineKeyboard(buttons));
+        }
+    }
+
+    if (session.current_step === 'PROG_WAIT_MANUAL_BOQ') {
+        const custom_boq_name = text;
+        // Kita tidak punya boq_id untuk input manual, jadi simpan id kosong atau flag di session.
+        await updateSession(telegram_id, 'PROG_WAIT_QTY', { ...session.data, boq_id: null, custom_boq_name: custom_boq_name });
+        return ctx.reply(`_"${custom_boq_name}"_ dicatat sebagai pekerjaan.\n\n✏️ Masukkan *Volume/Jumlah* pekerjaan berupa angka (misalnya: 50 atau 10.5):`, { parse_mode: 'Markdown' });
     }
 
     if (session.current_step === 'PROG_WAIT_QTY') {
@@ -188,6 +220,12 @@ bot.on('text', async (ctx) => {
         const buttons = mats.map(m => [Markup.button.callback(m.material_name, `MATITEM_${m.id}`)]);
         await updateSession(telegram_id, 'MAT_WAIT_SELECT_ITEM', session.data);
         return ctx.reply("Pilih Material yang sesuai:", Markup.inlineKeyboard(buttons));
+    }
+
+    if (session.current_step === 'MAT_WAIT_MANUAL_ITEM') {
+        const custom_mat_name = text;
+        await updateSession(telegram_id, 'MAT_WAIT_QTY', { ...session.data, material_id: null, custom_mat_name: custom_mat_name });
+        return ctx.reply(`_"${custom_mat_name}"_ dicatat sebagai material.\n\n✏️ Masukkan *Jumlah Barang* berupa angka:`, { parse_mode: 'Markdown' });
     }
 
     if (session.current_step === 'MAT_WAIT_QTY') {
@@ -255,24 +293,26 @@ bot.on('photo', async (ctx) => {
         const sd = session.data;
 
         if (session.current_step === 'PROG_WAIT_PHOTO') {
+            const finalNotes = sd.custom_boq_name ? `[Manual Item: ${sd.custom_boq_name}] ` + sd.notes : sd.notes;
             const { error } = await supabase.from("laporan_kerja").insert({
                 telegram_id: ctx.from.id,
                 project_id: sd.project_id,
                 boq_id: sd.boq_id,
                 quantity: sd.quantity,
-                notes: sd.notes,
+                notes: finalNotes,
                 photo_url: photoUrl,
                 status: "submitted"
             });
             if (error) throw error;
         } else if (session.current_step === 'MAT_WAIT_PHOTO') {
+            const finalNotes = sd.custom_mat_name ? `[Manual Item: ${sd.custom_mat_name}] ` + sd.notes : sd.notes;
             const { error } = await supabase.from("transaksi_material").insert({
                 telegram_id: ctx.from.id,
                 project_id: sd.project_id,
                 material_id: sd.material_id,
                 transaction_type: sd.tr_type,
                 quantity: sd.quantity,
-                notes: sd.notes,
+                notes: finalNotes,
                 photo_url: photoUrl,
                 status: "submitted"
             });
