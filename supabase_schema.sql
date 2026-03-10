@@ -12,7 +12,9 @@ DROP TABLE IF EXISTS master_project CASCADE;
 -- 0. Table: master_project
 CREATE TABLE IF NOT EXISTS master_project (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    area VARCHAR(255),
     project_name VARCHAR(255) NOT NULL,
+    site_name VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
@@ -81,6 +83,8 @@ SELECT
     lk.id,
     lk.telegram_id,
     mp.project_name as location,
+    mp.area,
+    mp.site_name,
     lk.photo_url,
     lk.quantity,
     lk.notes,
@@ -97,6 +101,8 @@ SELECT
     tm.id,
     tm.telegram_id,
     mp.project_name as project_name,
+    mp.area,
+    mp.site_name,
     tm.transaction_type,
     tm.photo_url,
     tm.quantity,

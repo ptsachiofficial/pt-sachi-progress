@@ -61,11 +61,11 @@ async function seed() {
     console.log(`Pusging ${boqRows.length} BOQ items and ${materialRows.length} Material items...`);
 
     const dummyProjects = [
-        { project_name: "Proyek Fiber Jakarta Pusat" },
-        { project_name: "Proyek Jaringan Surabaya" },
-        { project_name: "Perawatan FAT Bandung" },
-        { project_name: "Instalasi Baru ODC Medan" },
-        { project_name: "Korektif Maintenance" }
+        { project_name: "Proyek Fiber Jakarta Pusat", area: "Jakarta", site_name: "Site-JKT-01" },
+        { project_name: "Proyek Jaringan Surabaya", area: "Surabaya", site_name: "Site-SBY-02" },
+        { project_name: "Perawatan FAT Bandung", area: "Bandung", site_name: "Site-BDG-03" },
+        { project_name: "Instalasi Baru ODC Medan", area: "Medan", site_name: "Site-MDN-04" },
+        { project_name: "Korektif Maintenance", area: "Nasional", site_name: "Seluruh Site" }
     ];
 
     // Clear existing items just in case (optional, we'll just insert)
