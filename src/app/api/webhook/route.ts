@@ -52,6 +52,22 @@ const TASK_DESIGNATOR_MAP: Record<string, string[]> = {
   "INSTALASI JUMPER FTM (OLT-FEEDER)": []
 };
 
+// --- Helper Info Syarat Foto Khusus berdasarkan ROLEBOT.txt ---
+function getPhotoRequirementMessage(t: string): string {
+    if (t.includes('PEMBUATAN & PEMASANGAN HANDHOLE')) return "\n  . FOTO PENGUKURAN PANJANG\n  . FOTO PENGUKURAN LEBAR\n  . FOTO PENGUKURAN KEDALAMAN\n  . FOTO TAMPAK JAUH FULL\n";
+    if (t.includes('PENARIKKAN KABEL FEEDER') || t.includes('PENARIKKAN KABEL DISTRIBUSI')) return "\n  . FOTO MARKING START\n  . FOTO MARKING END\n  (ditambah 1 foto per 50 METER)\n";
+    if (t.includes('PEMASANGAN TIANG')) return "\n  . TAMPAK JAUH\n  . TAMPAK ATAS\n  . TAMPAK BAWAH (COR)\n  . TAMPAK DEKAT\n";
+    if (t.includes('PEMASANGAN ODC')) return "\n  . TAMPAK DALAM TERLIHAT FULL\n  . TAMPAK LUAR POSISI TERTUTUP\n  . TAMPAK JAUH\n  . TAMPAK BLAKANG\n";
+    if (t.includes('PEMASANGAN ODP')) return "\n  . TAMPAK SAMBUNGAN\n  . TAMPAK ACC ODP\n  . TAMPAK FULL POSISI TERTUTUP DAN SUDAH TERLABEL\n  . EVIDEN REDAMAN PER PORT 1-16\n  . TAMPAK JAUH\n";
+    if (t.includes('PEMASANGAN DAN TERMINASI OTB')) return "\n  . TAMPAK DEPAN\n  . TAMPAK JAUH\n  . EVIDEN SAAT TERMINASI MIN 4 FOTO\n  . EVIDEN PENGUKURAN\n  . TAMPAK DEKAT/PROSES\n";
+    if (t.includes('PEMASANGAN CLOSURE')) return "\n  . TAMPAK DALAM\n  . TAMPAK LUAR\n  . EVIDEN SAAT TERMINASI TIAP KASET\n  . TAMPAK JAUH (SUDAH TERTUTUP)\n";
+    if (t.includes('TERMINASI ODC')) return "\n  . TAMPAK BESTRAY TERBUKA SAAT SETELAH SELESAI TERMINASI\n  . TAMPAK BESTRAY TERPASANG SAMBIL MENUNJUK\n";
+    if (t.includes('TERMINASI ODP')) return "\n  . TAMPAK SETELAH SELESAI TERMINASI\n  . TAMPAK PROGRES TERMINASI\n";
+    if (t.includes('TERMINASI CLOSURE')) return "\n  . TAMPAK TIAP KASET\n  . TAMPAK PROGRES\n";
+    if (t.includes('PERAPIHAN')) return "\n  . UPLOAD FOTO LABELING MIN 4 FOTO\n";
+    return "\n";
+}
+
 // --- COMMANDS ---
 bot.start(async (ctx) => {
     await clearSession(ctx.from.id);
@@ -384,7 +400,8 @@ bot.on("callback_query", async (ctx) => {
         
         const photos = sd.photos || [];
         if (photos.length < requiredPhotos) {
-            return ctx.reply(`⚠️ Peringatan: Untuk pekerjaan *${t}* dengan volume *${vol}*, Anda DIWAJIBKAN mengunggah minimal *${requiredPhotos} foto* sesuai aturan.\n\nAnda baru mengunggah *${photos.length} foto*. Silakan kirimkan foto tambahannya sekarang.`, { parse_mode: 'Markdown' });
+            const extraMsg = getPhotoRequirementMessage(t);
+            return ctx.reply(`⚠️ Peringatan: Untuk pekerjaan *${t}* dengan volume *${vol}*, Anda DIWAJIBKAN mengunggah minimal *${requiredPhotos} foto* sesuai aturan.${extraMsg}\nAnda baru mengunggah *${photos.length} foto*. Silakan kirimkan foto tambahannya sekarang.`, { parse_mode: 'Markdown' });
         }
         // -----------------------------
 
