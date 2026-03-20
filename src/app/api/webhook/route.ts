@@ -275,19 +275,37 @@ bot.on("callback_query", async (ctx) => {
 
     if (data === "FINISH_PHOTO_UPLOAD") {
         const session = await getSession(telegram_id);
-        if(!session.data.project_id) return ctx.reply("Sesi hilang. Ketik /start");
-        
-        ctx.editMessageText("⏳ Menyimpan semua foto laporan...");
-
         const sd = session.data;
+        if(!sd.project_id) return ctx.reply("Sesi hilang. Ketik /start");
+        
+        // --- Photo Rule Validation ---
+        let requiredPhotos = 1;
+        const vol = sd.quantity || 1;
+        const t = sd.task || "";
+        
+        if (t.includes('GALIAN') || t.includes('ROJOK')) requiredPhotos = Math.max(1, Math.ceil(vol / 20));
+        else if (t.includes('SUBDUCT') || t.includes('HDPE') || t.includes('PEMASANGAN ODC') || t.includes('CLOSURE') || t.includes('PERAPIHAN')) requiredPhotos = 4;
+        else if (t.includes('HANDHOLE') || t.includes('TIANG')) requiredPhotos = vol * 4;
+        else if (t.includes('FEEDER') || t.includes('DISTRIBUSI')) requiredPhotos = 2 + Math.ceil(vol / 50);
+        else if (t.includes('PEMASANGAN ODP')) requiredPhotos = vol * 20;
+        else if (t.includes('OTB')) requiredPhotos = 8;
+        else if (t.includes('TERMINASI ODC') || t.includes('TERMINASI CLOSURE')) requiredPhotos = Math.max(1, Math.ceil(vol / 12) * 2);
+        else if (t.includes('TERMINASI ODP')) requiredPhotos = vol * 2;
+        
         const photos = sd.photos || [];
+        if (photos.length < requiredPhotos) {
+            return ctx.reply(`⚠️ Peringatan: Untuk pekerjaan *${t}* dengan volume *${vol}*, Anda DIWAJIBKAN mengunggah minimal *${requiredPhotos} foto* sesuai aturan.\n\nAnda baru mengunggah *${photos.length} foto*. Silakan kirimkan foto tambahannya sekarang.`, { parse_mode: 'Markdown' });
+        }
+        // -----------------------------
+
+        ctx.editMessageText("⏳ Menyimpan semua foto laporan...");
 
         const { error } = await supabase.from('laporan_kerja').insert({
             telegram_id: telegram_id,
             project_id: sd.project_id,
             task_category: sd.category,
             task_name: sd.task + (sd.designator ? ` (${sd.designator})` : ''),
-            quantity: sd.quantity || 1,
+            quantity: vol,
             notes: "Dilaporkan via Bot", // Bisa dikembangkan klo butuh notes manual
             photo_urls: photos,
             status: "submitted"
