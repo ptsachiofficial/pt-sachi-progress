@@ -1,17 +1,23 @@
 import Link from "next/link";
+import Image from "next/image";
 
 export default function Home() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-sky-200">
       <main className="flex-1 flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8">
         <div className="text-center max-w-3xl mx-auto">
-          <div className="inline-flex items-center justify-center p-3 bg-sky-100 rounded-2xl mb-8">
-            <svg className="w-8 h-8 text-sky-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
+          <div className="inline-flex items-center justify-center mb-6 mt-4">
+            <Image 
+              src="/Logo1.png" 
+              alt="PT Sachi Logo" 
+              width={100} 
+              height={100} 
+              className="object-contain drop-shadow-sm hover:scale-105 transition-transform duration-300" 
+              priority 
+            />
           </div>
 
-          <h1 className="text-5xl sm:text-6xl font-extrabold text-slate-900 tracking-tight mb-6 mt-4">
+          <h1 className="text-5xl sm:text-6xl font-extrabold text-slate-900 tracking-tight mb-6 mt-2">
             Sistem Pelaporan Progres <br className="hidden sm:block" />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-500 to-indigo-600">PT Sachi</span>
           </h1>
