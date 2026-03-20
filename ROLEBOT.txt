@@ -1,0 +1,245 @@
+/start
+
+Selamat Datang di Sistem Pelaporan PT Sachi 🏢
+
+Bot ini akan membantu Anda melaporkan bukti kerja lapangan atau manajemen material dengan cepat.
+
+Pilih menu di bawah ini untuk memulai proses interaktif:
+
+BUTTON INLINE KEYBOARD 
+1.NEW Project
+	1.1 ------FORM PENGISIAN------
+		DATA PROFILE MITRA 
+		Nama Mitra : 
+		Nama User  :
+
+		DETAIL PO
+		No SPMK : 
+		Nama Project :
+		Lokasi : 
+		Kordinat : 
+	1.2 KONFIRMASI DATA HASIL PENGISIHAN
+	1.3 SIMPAN KE DATABASE SUPABASE
+2.Laporan project
+	2.1 List data project yang tersimpan di supabase
+	2.2 Muncul pilihan 
+		i. Edit form
+		ii. Laporan progres
+			=>Persiapan : ❌
+				a. Aanwijzing : ✅
+				b. Perijinan : ❌
+
+			=>Material Delivery : ❌
+				a. Material : ❌
+					- Tampilkan list material yang mau di input by designator
+					  Format input :
+					  pilih designator
+					  upload foto pengambilan material
+					  isi volume pengambilan
+
+			=>Instalasi : ❌
+				a. BC-TR (GALIAN) / BORING MANUAL / ROJOK (DD-BM) ❌
+					- Format input :
+					  pilih designator GALIAN
+					  isi volume Satuan METER
+					  upload foto dari volume satuan per 20M 1foto jadi jika volume di isi 100 maka wajib upload 5foto
+					  
+				b. PEMASANGAN SUBDUCT / HDPE / PIPA ❌
+					- Format input :
+					  pilih designator HDPE
+					  isi volume Satuan METER
+					  upload foto min 4 foto per laporan 
+					  
+				c. PEMBUATAN & PEMASANGAN HANDHOLE ❌
+					- Format input :
+					  pilih designator HH
+					  isi volume Satuan PCS
+					  upload foto min 4 foto per PCS
+						. FOTO PENGUKURAN PANJANG
+						. FOTO PENGUKURAN LEBAR
+						. FOTO PENGUKURAN KEDALAMAN
+						. FOTO TAMPAK JAUH FULL 
+					
+				d. PENARIKKAN KABEL FEEDER ❌
+					- Format input :
+					  pilih designator KABEL
+					  isi volume Satuan METER
+					  FOTO Wajib sebelum bedasarkan volume 2 foto 
+						. FOTO MARKING START
+						. FOTO MARKING END
+					  upload foto dari volume satuan per 50M 1foto jadi jika volume di isi 100 maka wajib upload 2foto
+					  
+						
+				e. PENARIKKAN KABEL DISTRIBUSI ❌
+					- Format input :
+					  pilih designator KABEL
+					  isi volume Satuan METER
+					  FOTO Wajib sebelum bedasarkan volume 2 foto 
+						. FOTO MARKING START
+						. FOTO MARKING END
+					  upload foto dari volume satuan per 50M 1foto jadi jika volume di isi 100 maka wajib upload 2foto
+					  
+				f. PEMASANGAN TIANG 7m / 9m ❌
+					- Format input :
+					  pilih designator TIANG
+					  isi volume Satuan PCS
+					  upload foto dari volume satuan tiap PCS 4 FOTO
+					   . TAMPAK JAUH
+					   . TAMPAK ATAS
+					   . TAMPAK BAWAH (COR)
+					   . TAMPAK DEKAT
+					   
+				g. PEMASANGAN ODC ❌
+					- Format input :
+					  pilih designator ODC
+					  isi volume Satuan PCS
+					  upload foto Minimal 4 foto
+					   . TAMPAK DALAM TERLIHAT FULL
+					   . TAMPAK LUAR POSISI TERTUTUP
+					   . TAMPAK JAUH
+					   . TAMPAK BLAKANG
+					   
+				h. PEMASANGAN ODP ❌
+					- Format input :
+					  pilih designator ODP
+					  isi volume Satuan PCS
+					  upload foto sesuai jumlah volume tiap 1 volume wajib upload 20foto
+					   . TAMPAK SAMBUNGAN
+					   . TAMPAK ACC ODP
+					   . TAMPAK FULL POSISI TERTUTUP DAN SUDAH TERLABEL
+					   . EVIDEN REDAMAN PER PORT 1-16
+					   . TAMPAK JAUH
+					   
+				i. PEMASANGAN DAN TERMINASI OTB ❌
+					- Format input :
+					  pilih designator OTB
+					  isi volume Satuan PCS
+					  upload foto minimal 8
+					   . TAMPAK DEPAN
+					   . TAMPAK JAUH
+					   . EVIDEN SAAT TERMINASI MIN 4 FOTO
+					   . EVIDEN PENGUKURAN
+					   . TAMPAK DEKAT/PROSES
+					   
+				j. PEMASANGAN CLOSURE ❌
+					- Format input :
+					  pilih designator CLOSURE
+					  isi volume Satuan PCS
+					  upload foto minimal 4
+					   . TAMPAK DALAM
+					   . TAMPAK LUAR
+					   . EVIDEN SAAT TERMINASI TIAP KASET
+					   . TAMPAK JAUH (SUDAH TERTUTUP)
+					   
+				k. PEMASANGAN AKSESORIS ❌
+					- Volume instalasi hari ini : 
+				l. TERMINASI ODC ❌
+					- Format input :
+					  pilih designator ODC
+					  isi volume Satuan CORE
+					  upload foto minimal 2 foto setiap 12 volume core
+					   . TAMPAK BESTRAY TERBUKA SAAT SETELAH SELESAI TERMINASI
+					   . TAMPAK BESTRAY TERPASANG SAMBIL MENUNJUK
+
+				m. TERMINASI ODP ❌
+					- Format input :
+					  pilih designator ODC
+					  isi volume Satuan CORE
+					  upload foto minimal 2 foto setiap 1 volume core
+					   . TAMPAK SETELAH SELESAI TERMINASI
+					   . TAMPAK PROGRES TERMINASI
+					   
+				n. TERMINASI CLOSURE ❌
+					- Format input :
+					  pilih designator CLOSURE
+					  isi volume Satuan CORE
+					  upload foto minimal 2 foto setiap 12 volume core
+					   . TAMPAK TIAP KASET
+					   . TAMPAK PROGRES
+					   
+
+			=>Finish Instalation : ❌
+				a. PERAPIHAN & LABELLING 
+					- Format input :
+					  UPLOAD FOTO LABELING MIN 4 FOTO
+				b. ATP ❌
+					- UPLOAD DOC ATP :
+						☐ upload Berkas ATP lengkap 
+						☐ upload KML Realisasi
+						☐ upload BOQ
+						☐ upload ACAD
+						☐ upload BARM (Rekon Material)
+
+			=>Closing
+				a. Uji Terima : ❌
+				b. Go Live : ❌
+		
+		iii. STATUS
+			DATA PROFILE MITRA 
+			Nama Mitra : 
+			Nama User  :
+
+			DETAIL PO
+			No SPMK : 
+			Nama Project :
+			Lokasi : 
+			Kordinat : 
+
+
+
+			DETAIL PROSES
+			=>Persiapan : ❌
+				a. Aanwijzing : ✅
+				b. Perijinan : ❌
+
+			=>Material Delivery : ❌
+				a. Material : ❌
+
+			=>Instalasi : ❌
+				a. BC-TR (GALIAN) / BORING MANUAL / ROJOK (DD-BM) ❌
+				  - Volume instalasi hari ini : 
+				b. PEMASANGAN SUBDUCT / HDPE / PIPA ❌
+				  - Volume instalasi hari ini : 
+				c. PEMBUATAN & PEMASANGAN HANDHOLE ❌
+				  - Volume instalasi hari ini : 
+				d. PENARIKKAN KABEL FEEDER ❌
+				  - Volume instalasi hari ini : 
+				e. PENARIKKAN KABEL DISTRIBUSI ❌
+				  - Volume instalasi hari ini : 
+				f. PEMASANGAN TIANG 7m / 9m ❌
+				  - Volume instalasi hari ini : 
+				g. PEMASANGAN ODC ❌
+				  - Volume instalasi hari ini : 
+				h. PEMASANGAN ODP ❌
+				  - Volume instalasi hari ini : 
+				i. PEMASANGAN DAN TERMINASI OTB ❌
+				  - Volume instalasi hari ini : 
+				j. PEMASANGAN CLOSURE ❌
+				  - Volume instalasi hari ini : 
+				k. PEMASANGAN AKSESORIS ❌
+				  - Volume instalasi hari ini : 
+				l. TERMINASI ODC ❌
+				  - Volume instalasi hari ini : 
+				m. TERMINASI ODP ❌
+				  - Volume instalasi hari ini : 
+				n. TERMINASI CLOSURE ❌
+				  - Volume instalasi hari ini : 
+				o. PEMASANGAN IKR/IKG ❌
+				  - Volume instalasi hari ini : 
+				p. INSTALASI FTM ❌
+				  - Volume instalasi hari ini : 
+				q. INSTALASI JUMPER FTM (OLT-FEEDER) ❌
+				  - Volume instalasi hari ini : 
+
+			=>Finish Instalation : ❌
+				a. PERAPIHAN & LABELLING ❌
+				b. ATP ❌
+
+			=>Closing
+				a. Uji Terima : ❌
+				b. Go Live : ❌
+		
+		
+		iiii. Batal/kembali
+
+

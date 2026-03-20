@@ -1,7 +1,8 @@
 -- Setup Supabase SQL Schema for PT Sachi Progress Reporting
+-- Update according to ROLEBOT.txt flow
 
--- (Tambahan) Hapus tabel dan view lama jika sudah ada agar bisa dibuat ulang dengan struktur terbaru
 DROP VIEW IF EXISTS view_laporan_lengkap CASCADE;
+DROP VIEW IF EXISTS view_transaksi_material CASCADE;
 DROP TABLE IF EXISTS laporan_kerja CASCADE;
 DROP TABLE IF EXISTS transaksi_material CASCADE;
 DROP TABLE IF EXISTS bot_sessions CASCADE;
@@ -12,9 +13,12 @@ DROP TABLE IF EXISTS master_project CASCADE;
 -- 0. Table: master_project
 CREATE TABLE IF NOT EXISTS master_project (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    area VARCHAR(255),
+    nama_mitra VARCHAR(255),
+    nama_user VARCHAR(255),
+    no_spmk VARCHAR(255),
     project_name VARCHAR(255) NOT NULL,
-    site_name VARCHAR(255),
+    lokasi VARCHAR(255),
+    kordinat VARCHAR(255),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
@@ -28,7 +32,6 @@ CREATE TABLE IF NOT EXISTS bot_sessions (
 );
 
 -- 2. Table: master_boq
--- Digunakan untuk data Bill of Quantities / jenis pekerjaan
 CREATE TABLE IF NOT EXISTS master_boq (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     task_name VARCHAR(255) NOT NULL,
@@ -38,7 +41,6 @@ CREATE TABLE IF NOT EXISTS master_boq (
 );
 
 -- 3. Table: master_material
--- Digunakan untuk data Material yang digunakan
 CREATE TABLE IF NOT EXISTS master_material (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     material_name VARCHAR(255) NOT NULL,
@@ -48,21 +50,21 @@ CREATE TABLE IF NOT EXISTS master_material (
 );
 
 -- 4. Table: laporan_kerja
--- Digunakan untuk menyimpan laporan kerja dengan relasi dan foto
 CREATE TABLE IF NOT EXISTS laporan_kerja (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     telegram_id BIGINT NOT NULL,
     project_id UUID REFERENCES master_project(id),
-    photo_url TEXT,
+    task_category VARCHAR(100), -- e.g., 'Instalasi'
+    task_name VARCHAR(255),     -- e.g., 'BC-TR (GALIAN)'
     boq_id UUID REFERENCES master_boq(id),
     quantity NUMERIC,
     notes TEXT,
-    status VARCHAR(50) DEFAULT 'pending',
+    photo_urls JSONB DEFAULT '[]'::jsonb,
+    status VARCHAR(50) DEFAULT 'submitted',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
 -- 4b. Table: transaksi_material
--- Digunakan untuk menyimpan riwayat keluar masuk material
 CREATE TABLE IF NOT EXISTS transaksi_material (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     telegram_id BIGINT NOT NULL,
@@ -70,22 +72,23 @@ CREATE TABLE IF NOT EXISTS transaksi_material (
     material_id UUID REFERENCES master_material(id),
     transaction_type VARCHAR(10) NOT NULL, -- 'IN' atau 'OUT'
     quantity NUMERIC NOT NULL,
-    photo_url TEXT,
+    photo_urls JSONB DEFAULT '[]'::jsonb,
     notes TEXT,
-    status VARCHAR(50) DEFAULT 'pending',
+    status VARCHAR(50) DEFAULT 'submitted',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now())
 );
 
--- 5. View (Optional): view_laporan_lengkap
--- View untuk mempermudah dashboard mengambil data laporan beserta nama BOQ dan Project
+-- 5. View: view_laporan_lengkap
 CREATE OR REPLACE VIEW view_laporan_lengkap AS
 SELECT 
     lk.id,
     lk.telegram_id,
-    mp.project_name as location,
-    mp.area,
-    mp.site_name,
-    lk.photo_url,
+    mp.project_name,
+    mp.lokasi,
+    mp.nama_mitra,
+    lk.task_category,
+    lk.task_name,
+    lk.photo_urls,
     lk.quantity,
     lk.notes,
     lk.status,
@@ -100,11 +103,11 @@ CREATE OR REPLACE VIEW view_transaksi_material AS
 SELECT 
     tm.id,
     tm.telegram_id,
-    mp.project_name as project_name,
-    mp.area,
-    mp.site_name,
+    mp.project_name,
+    mp.lokasi,
+    mp.nama_mitra,
     tm.transaction_type,
-    tm.photo_url,
+    tm.photo_urls,
     tm.quantity,
     tm.notes,
     tm.status,
@@ -114,3 +117,4 @@ SELECT
 FROM transaksi_material tm
 LEFT JOIN master_material mm ON tm.material_id = mm.id
 LEFT JOIN master_project mp ON tm.project_id = mp.id;
+

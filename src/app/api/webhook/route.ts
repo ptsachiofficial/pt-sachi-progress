@@ -5,7 +5,7 @@ import { uploadToR2 } from "@/lib/r2";
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || "");
 
-// State Management Helpers using Supabase bot_sessions
+// --- Session Management ---
 async function getSession(telegram_id: number) {
     const { data } = await supabase.from('bot_sessions').select('*').eq('telegram_id', telegram_id).single();
     if (!data) return { current_step: 'IDLE', data: {} };
@@ -25,6 +25,12 @@ async function clearSession(telegram_id: number) {
     await supabase.from('bot_sessions').delete().eq('telegram_id', telegram_id);
 }
 
+// --- Menu Helpers ---
+const MAIN_MENU = Markup.inlineKeyboard([
+    [Markup.button.callback("1. NEW Project", "MENU_NEW_PROJ")],
+    [Markup.button.callback("2. Laporan project", "MENU_LAP_PROJ")]
+]);
+
 // --- COMMANDS ---
 bot.start(async (ctx) => {
     await clearSession(ctx.from.id);
@@ -32,12 +38,7 @@ bot.start(async (ctx) => {
         `Bot ini akan membantu Anda melaporkan bukti kerja lapangan atau manajemen material dengan cepat.\n\n` +
         `Pilih menu di bawah ini untuk memulai proses interaktif:`;
 
-    const inlineKeyboard = Markup.inlineKeyboard([
-        [Markup.button.callback("📝 Laporan Pekerjaan (Progres)", "MENU_PROGRES")],
-        [Markup.button.callback("📦 Manajemen Material (In/Out)", "MENU_MATERIAL")]
-    ]);
-
-    await ctx.reply(welcomeText, { parse_mode: 'Markdown', ...inlineKeyboard });
+    await ctx.reply(welcomeText, { parse_mode: 'Markdown', ...MAIN_MENU });
 });
 
 bot.command('cancel', async (ctx) => {
@@ -51,104 +52,240 @@ bot.on("callback_query", async (ctx) => {
     const data = cbQuery.data;
     const telegram_id = ctx.from.id;
 
-    // Acknowledge the button click so loading spinner on user side stops
     try { await ctx.answerCbQuery(); } catch (e) { }
 
-    // ---------------------------------------------
-    // ----------- ALUR LAPORAN PEKERJAAN ----------
-    // ---------------------------------------------
-    if (data === "MENU_PROGRES") {
-        const { data: projects } = await supabase.from('master_project').select('id, project_name').limit(10);
+    if (data === "MENU_MAIN") {
+        await clearSession(telegram_id);
+        return ctx.editMessageText("Pilih menu di bawah ini:", MAIN_MENU);
+    }
 
+    // ============================================
+    // 1. NEW PROJECT FLOW
+    // ============================================
+    if (data === "MENU_NEW_PROJ") {
+        await updateSession(telegram_id, 'NEW_PROJ_MITRA', { projectDraft: {} });
+        return ctx.editMessageText(
+            "📝 *FORM PENGISIAN PROJECT BARU*\n\n1. Masukkan *Nama Mitra*:",
+            { parse_mode: 'Markdown' }
+        );
+    }
+
+    if (data === "CONFIRM_SAVE_PROJ") {
+        const session = await getSession(telegram_id);
+        const p = session.data.projectDraft;
+        if (!p) return ctx.reply("Sesi kadaluarsa. Silakan ulangi /start.");
+        
+        ctx.editMessageText("⏳ Menyimpan project baru...");
+        const { error } = await supabase.from('master_project').insert({
+            nama_mitra: p.mitra,
+            nama_user: p.user,
+            no_spmk: p.spmk,
+            project_name: p.nama_project,
+            lokasi: p.lokasi,
+            kordinat: p.kordinat
+        });
+
+        if (error) {
+            console.error(error);
+            return ctx.reply("❌ Gagal menyimpan project.");
+        }
+        await clearSession(telegram_id);
+        return ctx.reply("✅ Project berhasil disimpan! Silakan klik /start untuk memulai laporan.");
+    }
+
+    if (data === "CONFIRM_CANCEL_PROJ") {
+        await clearSession(telegram_id);
+        return ctx.editMessageText("❌ Penambahan project dibatalkan.\n\nPilih menu:", MAIN_MENU);
+    }
+
+    // ============================================
+    // 2. LAPORAN PROJECT FLOW
+    // ============================================
+    if (data === "MENU_LAP_PROJ") {
+        const { data: projects } = await supabase.from('master_project').select('id, project_name').order('created_at', { ascending: false }).limit(10);
+        
         if (!projects || projects.length === 0) {
-            return ctx.reply("Belum ada data project di database. Hubungi admin.");
+            return ctx.reply("Belum ada data project di database. Buat project baru terlebih dahulu.");
         }
 
-        const buttons = projects.map(p => [Markup.button.callback(p.project_name, `PROJ_${p.id}`)]);
-        await updateSession(telegram_id, 'PROG_WAIT_PROJECT', { type: 'laporan' });
-        return ctx.editMessageCaption(
-            "📝 *Laporan Pekerjaan*\n\nSilakan pilih Project / Lokasi pekerjaan Anda:",
+        const buttons = projects.map(p => [Markup.button.callback(p.project_name, `SELPROJ_${p.id}`)]);
+        buttons.push([Markup.button.callback("🔙 Batal/Kembali", "MENU_MAIN")]);
+        
+        return ctx.editMessageText(
+            "📋 *List Data Project Tersimpan*\n\nSilakan pilih project:",
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
-        ).catch(() => ctx.reply("Silakan pilih Project dari daftar berikut:", Markup.inlineKeyboard(buttons)));
+        ).catch(() => ctx.reply("Silakan pilih Project:", Markup.inlineKeyboard(buttons)));
     }
 
-    // User selected a Project for Laporan
-    if (data.startsWith("PROJ_")) {
-        const projId = data.replace("PROJ_", "");
+    if (data.startsWith("SELPROJ_")) {
+        const projId = data.replace("SELPROJ_", "");
         const session = await getSession(telegram_id);
 
-        if (session.current_step === 'PROG_WAIT_PROJECT') {
-            await updateSession(telegram_id, 'PROG_WAIT_SEARCH_BOQ', { ...session.data, project_id: projId });
-            return ctx.reply("🔍 Ketik *Kata Kunci* dari tipe pekerjaan / designator BOQ.\n\n_Contoh ketik: tiang, atau adss, atau kabel_", { parse_mode: 'Markdown' });
-        }
+        const { data: p } = await supabase.from('master_project').select('*').eq('id', projId).single();
+        if(!p) return;
 
-        if (session.current_step === 'MAT_WAIT_PROJECT') {
-            await updateSession(telegram_id, 'MAT_WAIT_TYPE', { ...session.data, project_id: projId });
-            return ctx.reply("Silakan pilih jenis transaksi material:", Markup.inlineKeyboard([
-                [Markup.button.callback("Masuk (IN)", "MAT_TYPE_IN"), Markup.button.callback("Keluar (OUT)", "MAT_TYPE_OUT")]
-            ]));
-        }
+        const detail = `*DETAIL PO*\n`+
+            `No SPMK: ${p.no_spmk || '-'}\n`+
+            `Nama Project: ${p.project_name || '-'}\n`+
+            `Lokasi: ${p.lokasi || '-'}\n`+
+            `Kordinat: ${p.kordinat || '-'}\n`;
+
+        const buttons = [
+            [Markup.button.callback("📝 Laporan Progres", `LAPPROG_${projId}`)],
+            [Markup.button.callback("📊 STATUS", `STATPROJ_${projId}`)],
+            [Markup.button.callback("🔙 Batal/kembali", "MENU_LAP_PROJ")]
+        ];
+
+        return ctx.editMessageText(detail, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) })
+            .catch(()=>ctx.reply(detail, { parse_mode:'Markdown', ...Markup.inlineKeyboard(buttons) }));
     }
 
-    // User selected BOQ for Laporan
-    if (data.startsWith("BOQ_")) {
-        const boqId = data.replace("BOQ_", "");
+    // Laporan Progres - Pilih Kategori
+    if (data.startsWith("LAPPROG_")) {
+        const projId = data.replace("LAPPROG_", "");
+        await updateSession(telegram_id, 'LAP_MENU', { project_id: projId });
+        
+        const categories = [
+            ["Persiapan", "CAT_PERSIAPAN"],
+            ["Material Delivery", "CAT_MATERIAL"],
+            ["Instalasi", "CAT_INSTALASI"],
+            ["Finish Instalation", "CAT_FINISH"],
+            ["Closing", "CAT_CLOSING"]
+        ];
+
+        const buttons = categories.map(c => [Markup.button.callback(c[0], `LAPCAT_${c[1]}`)]);
+        buttons.push([Markup.button.callback("🔙 Kembali ke Project", `SELPROJ_${projId}`)]);
+
+        return ctx.editMessageText(
+            "Pilih Kategori Pekerjaan:",
+            { ...Markup.inlineKeyboard(buttons) }
+        ).catch(() => ctx.reply("Pilih Kategori Pekerjaan:", Markup.inlineKeyboard(buttons)));
+    }
+
+    // Laporan Progres - Pilih Sub Kategori/Task
+    if (data.startsWith("LAPCAT_")) {
+        const cat = data.replace("LAPCAT_", "");
         const session = await getSession(telegram_id);
-        if (session.current_step === 'PROG_WAIT_SELECT_BOQ') {
-            await updateSession(telegram_id, 'PROG_WAIT_QTY', { ...session.data, boq_id: boqId });
-            return ctx.reply("✏️ Masukkan *Volume/Jumlah* pekerjaan berupa angka (misalnya: 50 atau 10.5):", { parse_mode: 'Markdown' });
+        const projId = session.data.project_id;
+        if(!projId) return ctx.reply("Sesi hilang. Ketik /start");
+
+        let tasks: string[] = [];
+        let catName = "";
+
+        if (cat === "CAT_PERSIAPAN") { catName = "Persiapan"; tasks = ["Aanwijzing", "Perijinan"]; }
+        else if (cat === "CAT_MATERIAL") { catName = "Material Delivery"; tasks = ["Material"]; }
+        else if (cat === "CAT_INSTALASI") { 
+            catName = "Instalasi"; 
+            tasks = [
+                "BC-TR (GALIAN) / BORING MANUAL / ROJOK (DD-BM)",
+                "PEMASANGAN SUBDUCT / HDPE / PIPA",
+                "PEMBUATAN & PEMASANGAN HANDHOLE",
+                "PENARIKKAN KABEL FEEDER",
+                "PENARIKKAN KABEL DISTRIBUSI",
+                "PEMASANGAN TIANG 7m / 9m",
+                "PEMASANGAN ODC", "PEMASANGAN ODP", "PEMASANGAN DAN TERMINASI OTB",
+                "PEMASANGAN CLOSURE", "PEMASANGAN AKSESORIS", "TERMINASI ODC",
+                "TERMINASI ODP", "TERMINASI CLOSURE", "PEMASANGAN IKR/IKG",
+                "INSTALASI FTM", "INSTALASI JUMPER FTM (OLT-FEEDER)"
+            ];
         }
-    }
+        else if (cat === "CAT_FINISH") { catName = "Finish Instalation"; tasks = ["PERAPIHAN & LABELLING", "ATP"]; }
+        else if (cat === "CAT_CLOSING") { catName = "Closing"; tasks = ["Uji Terima", "Go Live"]; }
 
-    // ---------------------------------------------
-    // ----------- ALUR MANAJEMEN MATERIAL ---------
-    // ---------------------------------------------
-    if (data === "MENU_MATERIAL") {
-        const { data: projects } = await supabase.from('master_project').select('id, project_name').limit(10);
-        if (!projects || projects.length === 0) return ctx.reply("Belum ada data project di database. Hubungi admin.");
+        const buttons = tasks.map((t, idx) => [Markup.button.callback(t, `TASKSEL_${cat}_${idx}`)]);
+        buttons.push([Markup.button.callback("🔙 Kembali ke Kategori", `LAPPROG_${projId}`)]);
 
-        const buttons = projects.map(p => [Markup.button.callback(p.project_name, `PROJ_${p.id}`)]);
-        await updateSession(telegram_id, 'MAT_WAIT_PROJECT', { type: 'material' });
+        // Simpan map nama aslinya ke session agar gampang diambil berdasarkan idx
+        await updateSession(telegram_id, 'LAP_MENU_CAT', { ...session.data, category: catName, tasks });
 
-        return ctx.editMessageCaption(
-            "📦 *Manajemen Material*\n\nPilih Project tujuan transaksi material ini:",
+        return ctx.editMessageText(
+            `Kategori: *${catName}*\nPilih pekerjaan:`,
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
-        ).catch(() => ctx.reply("Pilih Project tujuan material:", Markup.inlineKeyboard(buttons)));
+        ).catch(() => ctx.reply(`Kategori: *${catName}*\nPilih pekerjaan:`, Markup.inlineKeyboard(buttons)));
     }
 
-    if (data.startsWith("MAT_TYPE_")) {
-        const ty = data.replace("MAT_TYPE_", ""); // IN or OUT
+    if (data.startsWith("TASKSEL_")) {
         const session = await getSession(telegram_id);
-        if (session.current_step === 'MAT_WAIT_TYPE') {
-            await updateSession(telegram_id, 'MAT_WAIT_SEARCH_ITEM', { ...session.data, tr_type: ty });
-            return ctx.reply(`Transaksi Material ${ty}.\n🔍 Ketik *Kata Kunci* dari tipe material.\n\n_Contoh ketik: closure, pigtail, dll_`, { parse_mode: 'Markdown' });
+        const parts = data.replace("TASKSEL_", "").split("_");
+        const idx = parseInt(parts[2]);
+        const taskName = session.data.tasks[idx];
+
+        await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, task: taskName });
+
+        if (session.data.category === "Material Delivery") {
+            await updateSession(telegram_id, 'LAP_WAIT_DESIGNATOR', { ...session.data, task: taskName });
+            return ctx.editMessageText("Ketik *Designator / Nama Material* yang akan diinput:", { parse_mode: 'Markdown' });
         }
+
+        return ctx.editMessageText(
+            `Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan untuk hari ini berupa angka (contoh: 50 atau 1):`,
+            { parse_mode: 'Markdown' }
+        ).catch(() => ctx.reply(`Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan untuk hari ini berupa angka:`));
     }
 
-    // User selected Material for Manajemen Material
-    if (data.startsWith("MATITEM_")) {
-        const matId = data.replace("MATITEM_", "");
+    if (data === "FINISH_PHOTO_UPLOAD") {
         const session = await getSession(telegram_id);
-        if (session.current_step === 'MAT_WAIT_SELECT_ITEM') {
-            await updateSession(telegram_id, 'MAT_WAIT_QTY', { ...session.data, material_id: matId });
-            return ctx.reply("✏️ Masukkan *Jumlah Barang* berupa angka:", { parse_mode: 'Markdown' });
+        if(!session.data.project_id) return ctx.reply("Sesi hilang. Ketik /start");
+        
+        ctx.editMessageText("⏳ Menyimpan semua foto laporan...");
+
+        const sd = session.data;
+        const photos = sd.photos || [];
+
+        const { error } = await supabase.from('laporan_kerja').insert({
+            telegram_id: telegram_id,
+            project_id: sd.project_id,
+            task_category: sd.category,
+            task_name: sd.task + (sd.designator ? ` (${sd.designator})` : ''),
+            quantity: sd.quantity || 1,
+            notes: "Dilaporkan via Bot", // Bisa dikembangkan klo butuh notes manual
+            photo_urls: photos,
+            status: "submitted"
+        });
+
+        if (error) {
+            console.error(error);
+            return ctx.reply(`❌ Gagal menyimpan laporan ke database.\nErr: ${error.message}`);
         }
-    }
-    // User manually types BOQ/Material if not found
-    if (data === "MANUAL_BOQ") {
-        const session = await getSession(telegram_id);
-        if (session.current_step === 'PROG_WAIT_SELECT_BOQ') {
-            await updateSession(telegram_id, 'PROG_WAIT_MANUAL_BOQ', session.data);
-            return ctx.reply("📝 Silakan ketik *Nama/Tipe Pekerjaan (BOQ)* yang dimaksud secara manual:", { parse_mode: 'Markdown' });
-        }
+
+        await clearSession(telegram_id);
+        const finishBtns = [
+            [Markup.button.callback("📑 Kembali ke Laporan Project", `LAPPROG_${sd.project_id}`)],
+            [Markup.button.callback("🏠 Menu Utama", `MENU_MAIN`)]
+        ];
+        return ctx.reply("✅ *Laporan Berhasil Disimpan!*", { parse_mode: 'Markdown', ...Markup.inlineKeyboard(finishBtns) });
     }
 
-    if (data === "MANUAL_MATITEM") {
-        const session = await getSession(telegram_id);
-        if (session.current_step === 'MAT_WAIT_SELECT_ITEM') {
-            await updateSession(telegram_id, 'MAT_WAIT_MANUAL_ITEM', session.data);
-            return ctx.reply("📝 Silakan ketik *Nama Material* tersebut secara manual:", { parse_mode: 'Markdown' });
-        }
+    // Status / Recap logic
+    if(data.startsWith("STATPROJ_")) {
+        const projId = data.replace("STATPROJ_", "");
+        
+        const { data: p } = await supabase.from('master_project').select('*').eq('id', projId).single();
+        if(!p) return ctx.reply("Project tidak ditemukan.");
+
+        const { data: laps } = await supabase.from('laporan_kerja').select('*').eq('project_id', projId);
+
+        let statusText = `*STATUS PROSES*:\n\n*Persiapan:*\n`;
+        const cPersiapan = laps?.filter(x=>x.task_category==='Persiapan')||[];
+        statusText += `a. Aanwijzing: ${cPersiapan.some(x=>x.task_name==='Aanwijzing')?'✅':'❌'}\n`;
+        statusText += `b. Perijinan: ${cPersiapan.some(x=>x.task_name==='Perijinan')?'✅':'❌'}\n\n`;
+
+        statusText += `*Instalasi (Total Ter-record):*\n`;
+        const cInstalasi = laps?.filter(x=>x.task_category==='Instalasi')||[];
+        const grouped = cInstalasi.reduce((acc, obj) => {
+            acc[obj.task_name] = (acc[obj.task_name] || 0) + parseFloat(obj.quantity||0);
+            return acc;
+        }, {} as any);
+
+        Object.keys(grouped).forEach(k => {
+            statusText += `- ${k}: ${grouped[k]}\n`;
+        });
+        if(Object.keys(grouped).length === 0) statusText += "Belum ada laporan instalasi.\n";
+
+        return ctx.editMessageText(statusText, { 
+            parse_mode: 'Markdown', 
+            ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", `SELPROJ_${projId}`)]]) 
+        }).catch(()=> ctx.reply(statusText, { parse_mode:'Markdown'}));
     }
 });
 
@@ -159,103 +296,80 @@ bot.on('text', async (ctx) => {
     const session = await getSession(telegram_id);
 
     if (session.current_step === 'IDLE') {
-        return ctx.reply("Tidak ada proses aktif. Ketik /start untuk membuat laporan atau /cancel untuk membatalkan sesuatu.");
+        return;
     }
 
-    // -- STATE LAPORAN PROGRES --
-    if (session.current_step === 'PROG_WAIT_SEARCH_BOQ') {
-        const { data: boqs } = await supabase.from('master_boq').select('id, task_name').ilike('task_name', `%${text}%`).limit(8);
+    // 1. NEW PROJECT
+    if (session.current_step.startsWith("NEW_PROJ_")) {
+        const pd = session.data.projectDraft;
+        const step = session.current_step;
 
-        const buttons = [];
-        if (boqs && boqs.length > 0) {
-            boqs.forEach(b => buttons.push([Markup.button.callback(b.task_name, `BOQ_${b.id}`)]));
+        if (step === 'NEW_PROJ_MITRA') {
+            await updateSession(telegram_id, 'NEW_PROJ_USER', { projectDraft: { ...pd, mitra: text } });
+            return ctx.reply("2. Masukkan *Nama User*:", { parse_mode: 'Markdown' });
         }
+        if (step === 'NEW_PROJ_USER') {
+            await updateSession(telegram_id, 'NEW_PROJ_SPMK', { projectDraft: { ...pd, user: text } });
+            return ctx.reply("3. Masukkan *No SPMK*:", { parse_mode: 'Markdown' });
+        }
+        if (step === 'NEW_PROJ_SPMK') {
+            await updateSession(telegram_id, 'NEW_PROJ_NAMA', { projectDraft: { ...pd, spmk: text } });
+            return ctx.reply("4. Masukkan *Nama Project*:", { parse_mode: 'Markdown' });
+        }
+        if (step === 'NEW_PROJ_NAMA') {
+            await updateSession(telegram_id, 'NEW_PROJ_LOKASI', { projectDraft: { ...pd, nama_project: text } });
+            return ctx.reply("5. Masukkan *Lokasi*:", { parse_mode: 'Markdown' });
+        }
+        if (step === 'NEW_PROJ_LOKASI') {
+            await updateSession(telegram_id, 'NEW_PROJ_KORDINAT', { projectDraft: { ...pd, lokasi: text } });
+            return ctx.reply("6. Masukkan *Kordinat* (atau ketik - jika tidak ada):", { parse_mode: 'Markdown' });
+        }
+        if (step === 'NEW_PROJ_KORDINAT') {
+            const finalPd = { ...pd, kordinat: text };
+            await updateSession(telegram_id, 'NEW_PROJ_CONFIRM', { projectDraft: finalPd });
+            
+            const recap = `*KONFIRMASI DATA HASIL PENGISIAN*\n\n`+
+                `Nama Mitra: ${finalPd.mitra}\n`+
+                `Nama User: ${finalPd.user}\n`+
+                `No SPMK: ${finalPd.spmk}\n`+
+                `Nama Project: ${finalPd.nama_project}\n`+
+                `Lokasi: ${finalPd.lokasi}\n`+
+                `Kordinat: ${finalPd.kordinat}\n\n`+
+                `Simpan ke database?`;
 
-        // Selalu berikan opsi input manual jika tidak ketemu
-        buttons.push([Markup.button.callback("⚠️ Tidak Ada di Daftar (Ketik Manual)", "MANUAL_BOQ")]);
-
-        await updateSession(telegram_id, 'PROG_WAIT_SELECT_BOQ', { ...session.data, search_term: text });
-
-        if (!boqs || boqs.length === 0) {
-            return ctx.reply(`Pencarian '${text}' tidak ditemukan di database.`, Markup.inlineKeyboard(buttons));
-        } else {
-            return ctx.reply("Pilih jenis pekerjaan di bawah ini. Jika tidak ada, tekan tombol paling bawah:", Markup.inlineKeyboard(buttons));
+            return ctx.reply(recap, {
+                parse_mode: 'Markdown',
+                ...Markup.inlineKeyboard([
+                    [Markup.button.callback("✅ SIMPAN KE DATABASE", "CONFIRM_SAVE_PROJ")],
+                    [Markup.button.callback("❌ BATAL", "CONFIRM_CANCEL_PROJ")]
+                ])
+            });
         }
     }
 
-    if (session.current_step === 'PROG_WAIT_MANUAL_BOQ') {
-        const custom_boq_name = text;
-        // Kita tidak punya boq_id untuk input manual, jadi simpan id kosong atau flag di session.
-        await updateSession(telegram_id, 'PROG_WAIT_QTY', { ...session.data, boq_id: null, custom_boq_name: custom_boq_name });
-        return ctx.reply(`_"${custom_boq_name}"_ dicatat sebagai pekerjaan.\n\n✏️ Masukkan *Volume/Jumlah* pekerjaan berupa angka (misalnya: 50 atau 10.5):`, { parse_mode: 'Markdown' });
+    // 2. LAPORAN PROGRES TEXT INPUTS
+    if (session.current_step === "LAP_WAIT_DESIGNATOR") {
+        await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, designator: text });
+        return ctx.reply(`Material: *${text}*\n✏️ Masukkan *Volume/Jumlah* berupa angka:`, { parse_mode: 'Markdown' });
     }
 
-    if (session.current_step === 'PROG_WAIT_QTY') {
+    if (session.current_step === "LAP_WAIT_QTY") {
         const vol = parseFloat(text.replace(',', '.'));
-        if (isNaN(vol)) return ctx.reply("Harap masukkan *angka* yang valid (misal: 12 atau 15.5):", { parse_mode: 'Markdown' });
-        await updateSession(telegram_id, 'PROG_WAIT_NOTES', { ...session.data, quantity: vol });
-        return ctx.reply("📝 Berikan *Catatan/Keterangan* pekerjaan (misalnya: Instalasi sisi utara jalan):", { parse_mode: 'Markdown' });
+        if (isNaN(vol)) return ctx.reply("Harap masukkan *angka* yang valid:");
+        
+        await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...session.data, quantity: vol, photos: [] });
+
+        return ctx.reply(
+            `Tahap Terakhir: Unggah Foto Eviden/Laporan\n\n`+
+            `📸 *Silakan kirim foto satu per satu.*\n`+
+            `Jika semua foto sudah selesai diunggah, klik tombol *[Selesai Upload]* di bawah.`,
+            { 
+                parse_mode: 'Markdown',
+                ...Markup.inlineKeyboard([[Markup.button.callback("✅ Selesai Upload", `FINISH_PHOTO_UPLOAD`)]])
+            }
+        );
     }
 
-    if (session.current_step === 'PROG_WAIT_NOTES') {
-        await updateSession(telegram_id, 'PROG_WAIT_PHOTO', { ...session.data, notes: text });
-        return ctx.reply("📸 Langkah terakhir! Silakan unggah *1 Bukti Foto* pekerjaan Anda. (Kirim sebagai Gambar, bukan sebagai file/Dokumen).", { parse_mode: 'Markdown' });
-    }
-
-    // -- STATE MANAJEMEN MATERIAL --
-    if (session.current_step === 'MAT_WAIT_SEARCH_ITEM') {
-        const { data: mats } = await supabase.from('master_material').select('id, material_name').ilike('material_name', `%${text}%`).limit(8);
-        if (!mats || mats.length === 0) {
-            return ctx.reply(`Tidak ada material yang cocok dengan pencarian '${text}'. Coba ketik kata kunci lain:`);
-        }
-
-        const buttons = mats.map(m => [Markup.button.callback(m.material_name, `MATITEM_${m.id}`)]);
-        await updateSession(telegram_id, 'MAT_WAIT_SELECT_ITEM', session.data);
-        return ctx.reply("Pilih Material yang sesuai:", Markup.inlineKeyboard(buttons));
-    }
-
-    if (session.current_step === 'MAT_WAIT_MANUAL_ITEM') {
-        const custom_mat_name = text;
-        await updateSession(telegram_id, 'MAT_WAIT_QTY', { ...session.data, material_id: null, custom_mat_name: custom_mat_name });
-        return ctx.reply(`_"${custom_mat_name}"_ dicatat sebagai material.\n\n✏️ Masukkan *Jumlah Barang* berupa angka:`, { parse_mode: 'Markdown' });
-    }
-
-    if (session.current_step === 'MAT_WAIT_QTY') {
-        const vol = parseFloat(text.replace(',', '.'));
-        if (isNaN(vol)) return ctx.reply("Harap masukkan *angka* yang valid:", { parse_mode: 'Markdown' });
-        await updateSession(telegram_id, 'MAT_WAIT_NOTES', { ...session.data, quantity: vol });
-        return ctx.reply("📝 Berikan *Keterangan/Surat Jalan/Catatan* terkait material ini:", { parse_mode: 'Markdown' });
-    }
-
-    if (session.current_step === 'MAT_WAIT_NOTES') {
-        await updateSession(telegram_id, 'MAT_WAIT_PHOTO', { ...session.data, notes: text });
-        return ctx.reply("📸 Opsional: Anda dapat mengunggah foto surat jalan/kondisi material, atau ketik kata 'SKIP' untuk mengirim tanpa foto.", { parse_mode: 'Markdown' });
-    }
-
-    // Handle SKIP Photo for material
-    if (session.current_step === 'MAT_WAIT_PHOTO' && text.toUpperCase() === 'SKIP') {
-        const sd = session.data;
-        const msg = await ctx.reply("⏳ Menyimpan transaksi material...");
-        const { error } = await supabase.from("transaksi_material").insert({
-            telegram_id: telegram_id,
-            project_id: sd.project_id,
-            material_id: sd.material_id,
-            transaction_type: sd.tr_type,
-            quantity: sd.quantity,
-            notes: sd.notes,
-            photo_url: null,
-            status: "submitted"
-        });
-
-        if (error) {
-            console.error(error);
-            return ctx.reply("❌ Gagal menyimpan ke database Supabase");
-        }
-        await clearSession(telegram_id);
-        return ctx.telegram.editMessageText(ctx.chat.id, msg.message_id, undefined, "✅ *Transaksi Material Berhasil Disimpan!*", { parse_mode: "Markdown" });
-    }
-
-    return ctx.reply("Harap ikuti instruksi yang spesifik sebelumnya atau kirim /cancel untuk mereset.");
 });
 
 // --- PHOTO UPLOAD ---
@@ -263,14 +377,16 @@ bot.on('photo', async (ctx) => {
     const telegram_id = ctx.from.id;
     const session = await getSession(telegram_id);
 
-    if (session.current_step !== 'PROG_WAIT_PHOTO' && session.current_step !== 'MAT_WAIT_PHOTO') {
-        return ctx.reply("Foto diterima, namun Anda belum berada di tahap unggah foto. Ketik /start untuk memulai.");
+    if (session.current_step !== 'LAP_WAIT_PHOTO') {
+        return ctx.reply("Foto diterima, namun Anda sedang tidak dalam status unggah foto. Ketik /start.");
     }
 
     try {
         const photo = ctx.message.photo.pop();
         if (!photo) return;
-        const initMsg = await ctx.reply("⏳ _Sedang mengunggah foto laporan ke Cloudflare R2..._", { parse_mode: "Markdown" });
+        
+        // Let user know it's queued
+        const initMsg = await ctx.reply("⏳ _Uploading..._", { parse_mode: "Markdown" });
 
         const fileLink = await ctx.telegram.getFileLink(photo.file_id);
         const response = await fetch(fileLink.toString());
@@ -280,43 +396,24 @@ bot.on('photo', async (ctx) => {
         const fileName = `${ctx.from.id}-${Date.now()}.jpg`;
         const photoUrl = await uploadToR2(buffer, fileName);
 
-        await ctx.telegram.editMessageText(ctx.chat.id, initMsg.message_id, undefined, "⏳ _Sedang memproses database..._", { parse_mode: "Markdown" });
+        const photos = session.data.photos || [];
+        photos.push(photoUrl);
+        await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...session.data, photos });
 
-        const sd = session.data;
-
-        if (session.current_step === 'PROG_WAIT_PHOTO') {
-            const finalNotes = sd.custom_boq_name ? `[Manual Item: ${sd.custom_boq_name}] ` + sd.notes : sd.notes;
-            const { error } = await supabase.from("laporan_kerja").insert({
-                telegram_id: ctx.from.id,
-                project_id: sd.project_id,
-                boq_id: sd.boq_id,
-                quantity: sd.quantity,
-                notes: finalNotes,
-                photo_url: photoUrl,
-                status: "submitted"
-            });
-            if (error) throw error;
-        } else if (session.current_step === 'MAT_WAIT_PHOTO') {
-            const finalNotes = sd.custom_mat_name ? `[Manual Item: ${sd.custom_mat_name}] ` + sd.notes : sd.notes;
-            const { error } = await supabase.from("transaksi_material").insert({
-                telegram_id: ctx.from.id,
-                project_id: sd.project_id,
-                material_id: sd.material_id,
-                transaction_type: sd.tr_type,
-                quantity: sd.quantity,
-                notes: finalNotes,
-                photo_url: photoUrl,
-                status: "submitted"
-            });
-            if (error) throw error;
-        }
-
-        await clearSession(telegram_id);
-        await ctx.telegram.editMessageText(ctx.chat.id, initMsg.message_id, undefined, "✅ *Berhasil!* Foto dan data sudah terekam di sistem PT Sachi.", { parse_mode: "Markdown" });
+        await ctx.telegram.editMessageText(
+            ctx.chat.id, 
+            initMsg.message_id, 
+            undefined, 
+            `✅ *Foto ${photos.length} Berhasil Diunggah!*\nSilakan kirim foto lagi jika ada, atau klik selesai.`, 
+            { 
+                parse_mode: "Markdown",
+                ...Markup.inlineKeyboard([[Markup.button.callback("✅ Selesai Upload Foto", `FINISH_PHOTO_UPLOAD`)]])
+            }
+        );
 
     } catch (e: any) {
-        console.error("Bot Error:", e);
-        await ctx.reply(`❌ *Terjadi kesalahan* saat memproses gambar:\n\n${e.message}`, { parse_mode: "Markdown" });
+        console.error("Upload Error:", e);
+        await ctx.reply(`❌ *Terjadi kesalahan* saat mengunggah foto.\n\n${e.message}`, { parse_mode: "Markdown" });
     }
 });
 
