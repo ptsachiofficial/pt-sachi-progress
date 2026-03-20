@@ -31,6 +31,27 @@ const MAIN_MENU = Markup.inlineKeyboard([
     [Markup.button.callback("2. Laporan project", "MENU_LAP_PROJ")]
 ]);
 
+// --- TASK TO DESIGNATOR MAPPING FROM KATEGORI.csv ---
+const TASK_DESIGNATOR_MAP: Record<string, string[]> = {
+  "BC-TR (GALIAN) / BORING MANUAL / ROJOK (DD-BM)": ["EXCAVATION-0.4", "EXCAVATION-0.6", "EXCAVATION-1.0", "EXCAVATION-1.2", "EXCAVATION-1.5", "BCTR-ROCK", "BD-SK", "DD-BRNG-HDPE-40-1", "DD-BRNG-HDPE-40-2", "DD-BRNG-HDPE-50-1", "DD-BRNG-HDPE-50-2", "DD-ROD", "DD-RV-1", "DD-RV-CONCRETE", "DD-DS-S1", "DD-DS-COD1-M"],
+  "PEMASANGAN SUBDUCT / HDPE / PIPA": ["HDPE-40-33", "PIPE-BRIDGE", "RP-GALVANIS"],
+  "PEMBUATAN & PEMASANGAN HANDHOLE": ["MH-HH-170", "MH-PIT-120", "HH-PIT-80", "HH-PIT-P-HA", "HH-PIT-P-FAT", "HH-PIT-P-FDT", "MH-HH-REKONDISI"],
+  "PENARIKKAN KABEL FEEDER": ["AC-ADSS-SM-48C", "AC-ADSS-SM-96C", "AC-ADSS-SM-144C", "AC-ADSS-SM-288C"],
+  "PENARIKKAN KABEL DISTRIBUSI": ["AC-ADSS-SM-12C", "AC-ADSS-SM-24C", "AC-ADSS-SM-48C", "AC-ADSS-SM-96C"],
+  "PEMASANGAN TIANG 7m / 9m": ["NP-6.0-100-1S", "NP-7.0-140-2S", "NP-7.0-140-3S", "NP-9.0-140-3S", "NP-CB-7.0-250", "NP-CB-9.0-250"],
+  "PEMASANGAN ODC": ["FDT-POLE-48C", "FDT-POLE-96C", "FDT-STDG-96C", "FDT-STDG-144C", "FDT-STDG-288C"],
+  "PEMASANGAN ODP": ["FAT-PB-8C-SOLID", "FAT-PB-16C-SOLID", "FAT-PDSTL-8", "FAT-PDSTL-16"],
+  "PEMASANGAN DAN TERMINASI OTB": ["Base Tray ODC", "OTB-SM-6", "OTB-SM-8", "OTB-SM-12", "OTB-SM-24", "OTB-SM-48", "OTB-SM-96", "OTB-SM-144", "OTB-SM-288"],
+  "PEMASANGAN CLOSURE": ["JC-OF-SM-12C", "JC-OF-SM-24C", "JC-OF-SM-48C", "JC-OF-SM-96C", "JC-OF-SM-144C", "JC-OF-SM-288C"],
+  "PEMASANGAN AKSESORIS": ["ACC-STAINLESS BELT", "ACC-SUSPENSION AYUN", "ACC-HELLICAL", "ACC-ANCHORING", "ACC-Bracket", "ACC-POLESTRAP SPIRAL"],
+  "TERMINASI ODC": ["FS-OF-SM", "NN-OTDR-CORE", "NN-CO-CORE"],
+  "TERMINASI ODP": ["FS-OF-SM", "NN-CO-CORE"],
+  "TERMINASI CLOSURE": ["FS-OF-SM", "NN-CO-CORE"],
+  "PEMASANGAN IKR/IKG": [],
+  "INSTALASI FTM": [],
+  "INSTALASI JUMPER FTM (OLT-FEEDER)": []
+};
+
 // --- COMMANDS ---
 bot.start(async (ctx) => {
     await clearSession(ctx.from.id);
@@ -237,6 +258,27 @@ bot.on("callback_query", async (ctx) => {
                 { parse_mode: 'Markdown' }
             );
         } else if (session.data.category === "Instalasi") {
+            const mapped = TASK_DESIGNATOR_MAP[taskName] || [];
+            
+            if (mapped.length > 0) {
+                const { data: dbData } = await supabase.from('master_boq').select('id, task_name').in('task_name', mapped);
+                
+                if (dbData && dbData.length > 0) {
+                    const buttons = [];
+                    // Urutkan supaya menyesuaikan order yg kita punya (opsional) atau biarkan langsung push
+                    for (let item of dbData) {
+                        buttons.push([Markup.button.callback(item.task_name, `SELDB_BOQ_${item.id}`)]);
+                    }
+                    buttons.push([Markup.button.callback("🔍 Pencarian Lainnya (Ketik Manual)", "SEARCH_OTHER_BOQ")]);
+
+                    await updateSession(telegram_id, 'LAP_WAIT_SEARCH_BOQ_OPTIONAL', { ...session.data, task: taskName });
+                    return ctx.editMessageText(
+                        `Task: *${taskName}*\n\nSilakan pilih Designator berikut, atau klik Pencarian Lainnya jika spesifik:`,
+                        { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+                    );
+                }
+            }
+            
             await updateSession(telegram_id, 'LAP_WAIT_SEARCH_BOQ', { ...session.data, task: taskName });
             return ctx.editMessageText(
                 `Task: *${taskName}*\n\n🔍 Silakan ketik kata kunci *Designator Instalasi* (contoh: tiang, galian, rodding, dsb):`,
@@ -250,6 +292,12 @@ bot.on("callback_query", async (ctx) => {
             `Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan berlalu berupa angka:`,
             { parse_mode: 'Markdown' }
         ).catch(() => ctx.reply(`Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan berlalu berupa angka:`));
+    }
+
+    if (data === "SEARCH_OTHER_BOQ") {
+        const session = await getSession(telegram_id);
+        await updateSession(telegram_id, 'LAP_WAIT_SEARCH_BOQ', session.data);
+        return ctx.editMessageText("🔍 Silakan ketik kata kunci *Designator Instalasi* (contoh: tiang, galian, rodding...):", { parse_mode: 'Markdown' });
     }
 
     // Callback pencarian terpilih (dari fitur bot.on('text') pencarian BOQ/Mat)
@@ -474,7 +522,7 @@ bot.on('text', async (ctx) => {
 
         const buttons = dbData.map(item => [
             Markup.button.callback(
-                isBoq ? item.task_name : item.material_name,
+                isBoq ? (item as any).task_name : (item as any).material_name,
                 isBoq ? `SELDB_BOQ_${item.id}` : `SELDB_MAT_${item.id}`
             )
         ]);
