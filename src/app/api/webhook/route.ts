@@ -597,6 +597,11 @@ bot.on('photo', async (ctx) => {
     const telegram_id = ctx.from.id;
     const session = await getSession(telegram_id);
 
+    if (ctx.message.caption && (ctx.message.caption.toLowerCase().includes('/batal') || ctx.message.caption.toLowerCase().includes('/cancel'))) {
+        await clearSession(telegram_id);
+        return ctx.reply("❌ *Proses Dibatalkan!*\n\nSeluruh data sesi Anda telah berhasil dibersihkan. Silakan ketik /start untuk kembali ke layar utama. 🔄", { parse_mode: 'Markdown' });
+    }
+
     if (session.current_step !== 'LAP_WAIT_PHOTO') {
         return ctx.reply("⚠️ *Konteks Tidak Sesuai*\nBot mendeteksi upload foto, namun pada riwayat sesi Anda belum ada prosedur pengumpulan bukti. Silakan mulai navigasi secara normal lewat ketik /start. 🔄", { parse_mode: 'Markdown' });
     }
@@ -616,12 +621,19 @@ bot.on('photo', async (ctx) => {
         const fileName = `${ctx.from.id}-${Date.now()}.jpg`;
         const photoUrl = await uploadToR2(buffer, fileName);
 
-        const photos = session.data.photos || [];
-        photos.push(photoUrl);
-        await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...session.data, photos });
+        // Fetch fresh session to ensure user didn't cancel while photo was buffering/uploading
+        const freshSession = await getSession(telegram_id);
+        if (freshSession.current_step !== 'LAP_WAIT_PHOTO') {
+            await ctx.telegram.editMessageText(ctx.chat.id, initMsg.message_id, undefined, "❌ *Upload Dibatalkan.*\nSesi Anda sudah ditutup sebelum foto ini selesai diproses ke Server.", { parse_mode: "Markdown" });
+            return;
+        }
 
-        const vol = session.data.quantity || 1;
-        const requiredPhotos = getRequiredPhotoCount(session.data.task || '', vol);
+        const photos = freshSession.data.photos || [];
+        photos.push(photoUrl);
+        await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...freshSession.data, photos });
+
+        const vol = freshSession.data.quantity || 1;
+        const requiredPhotos = getRequiredPhotoCount(freshSession.data.task || '', vol);
 
         if (photos.length >= requiredPhotos) {
             await ctx.telegram.editMessageText(
