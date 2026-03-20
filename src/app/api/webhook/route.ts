@@ -102,7 +102,7 @@ bot.start(async (ctx) => {
 
 bot.command(['cancel', 'batal'], async (ctx) => {
     await clearSession(ctx.from.id);
-    await ctx.reply("❌ *Semua proses telah dibatalkan!*\n\nData sesi Anda sudah dibersihkan. Silakan ketik /start untuk kembali ke menu utama.", { parse_mode: 'Markdown' });
+    await ctx.reply("❌ *Proses Dibatalkan!*\n\nSeluruh data sesi Anda telah berhasil dibersihkan. Silakan ketik /start untuk kembali ke layar utama. 🔄", { parse_mode: 'Markdown' });
 });
 
 // --- CALLBACK QUERIES ---
@@ -115,7 +115,7 @@ bot.on("callback_query", async (ctx) => {
 
     if (data === "MENU_MAIN") {
         await clearSession(telegram_id);
-        return ctx.editMessageText("Pilih menu di bawah ini:", MAIN_MENU);
+        return ctx.editMessageText("✨ *Menu Utama PT Sachi*\nSilakan pilih opsi menu di bawah ini:", MAIN_MENU);
     }
 
     // ============================================
@@ -124,7 +124,7 @@ bot.on("callback_query", async (ctx) => {
     if (data === "MENU_NEW_PROJ") {
         await updateSession(telegram_id, 'NEW_PROJ_MITRA', { projectDraft: {} });
         return ctx.editMessageText(
-            "📝 *FORM PENGISIAN PROJECT BARU*\n\n1. Masukkan *Nama Mitra*:",
+            "📝 *FORM PENGISIAN PROJECT BARU*\n\n1️⃣ Silakan masukkan *Nama Mitra* (contoh: Telkom, Icon+, dsb):",
             { parse_mode: 'Markdown' }
         );
     }
@@ -132,9 +132,9 @@ bot.on("callback_query", async (ctx) => {
     if (data === "CONFIRM_SAVE_PROJ") {
         const session = await getSession(telegram_id);
         const p = session.data.projectDraft;
-        if (!p) return ctx.reply("Sesi kadaluarsa. Silakan ulangi /start.");
+        if (!p) return ctx.reply("⚠️ *Sesi Anda telah kedaluwarsa.*\n\nSilakan ketik /start untuk mengulang proses dari awal. 🔄");
         
-        ctx.editMessageText("⏳ Menyimpan project baru...");
+        ctx.editMessageText("⏳ *Menyimpan Project Baru...*\nMohon tunggu sebentar, sistem sedang memproses data Anda.");
         const { error } = await supabase.from('master_project').insert({
             nama_mitra: p.mitra,
             nama_user: p.user,
@@ -146,15 +146,15 @@ bot.on("callback_query", async (ctx) => {
 
         if (error) {
             console.error(error);
-            return ctx.reply("❌ Gagal menyimpan project.");
+            return ctx.reply("❌ *Gagal Menyimpan Project!*\n\nTerjadi kesalahan fatal pada sistem. Silakan coba lagi beberapa saat.");
         }
         await clearSession(telegram_id);
-        return ctx.reply("✅ Project berhasil disimpan! Silakan klik /start untuk memulai laporan.");
+        return ctx.reply("✅ *Project Berhasil Disimpan!*\n\nData proyek Anda telah tercatat dengan aman di database. Silakan ketik /start untuk masuk ke menu pelaporan kerja. 🚀");
     }
 
     if (data === "CONFIRM_CANCEL_PROJ") {
         await clearSession(telegram_id);
-        return ctx.editMessageText("❌ Penambahan project dibatalkan.\n\nPilih menu:", MAIN_MENU);
+        return ctx.editMessageText("❌ *Pembuatan Project Dibatalkan.*\n\nSilakan pilih opsi menu lainnya di bawah ini:", MAIN_MENU);
     }
 
     // ============================================
@@ -164,16 +164,16 @@ bot.on("callback_query", async (ctx) => {
         const { data: projects } = await supabase.from('master_project').select('id, project_name').order('created_at', { ascending: false }).limit(10);
         
         if (!projects || projects.length === 0) {
-            return ctx.reply("Belum ada data project di database. Buat project baru terlebih dahulu.");
+            return ctx.reply("📭 *Data Project Kosong*\n\nBelum ada data project yang terdaftar. Sila buat project baru terlebih dahulu via menu sebelumnya. 🏢", { parse_mode: 'Markdown' });
         }
 
         const buttons = projects.map(p => [Markup.button.callback(p.project_name, `SELPROJ_${p.id}`)]);
         buttons.push([Markup.button.callback("🔙 Batal/Kembali", "MENU_MAIN")]);
         
         return ctx.editMessageText(
-            "📋 *List Data Project Tersimpan*\n\nSilakan pilih project:",
+            "📋 *Daftar Project Aktif*\n\nSilakan pilih project yang ingin Anda kelola laporkan progresnya:",
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
-        ).catch(() => ctx.reply("Silakan pilih Project:", Markup.inlineKeyboard(buttons)));
+        ).catch(() => ctx.reply("📋 *Daftar Project Aktif*\nSilakan pilih Project:", Markup.inlineKeyboard(buttons)));
     }
 
     if (data.startsWith("SELPROJ_")) {
@@ -183,16 +183,17 @@ bot.on("callback_query", async (ctx) => {
         const { data: p } = await supabase.from('master_project').select('*').eq('id', projId).single();
         if(!p) return;
 
-        const detail = `*DETAIL PO*\n`+
-            `No SPMK: ${p.no_spmk || '-'}\n`+
-            `Nama Project: ${p.project_name || '-'}\n`+
-            `Lokasi: ${p.lokasi || '-'}\n`+
-            `Kordinat: ${p.kordinat || '-'}\n`;
+        const detail = `📋 *DETAIL PROJECT*\n\n`+
+            `🏢 *Nama Project*: ${p.project_name || '-'}\n`+
+            `📄 *No. SPMK*: ${p.no_spmk || '-'}\n`+
+            `📍 *Lokasi*: ${p.lokasi || '-'}\n`+
+            `🌍 *Koordinat*: ${p.kordinat || '-'}\n\n`+
+            `Silakan pilih interaksi operasional laporan:`;
 
         const buttons = [
-            [Markup.button.callback("📝 Laporan Progres", `LAPPROG_${projId}`)],
-            [Markup.button.callback("📊 STATUS", `STATPROJ_${projId}`)],
-            [Markup.button.callback("🔙 Batal/kembali", "MENU_LAP_PROJ")]
+            [Markup.button.callback("📝 Mengisi Laporan Progres", `LAPPROG_${projId}`)],
+            [Markup.button.callback("📊 Cek Status Progres Murni", `STATPROJ_${projId}`)],
+            [Markup.button.callback("🔙 Batal/Kembali", "MENU_LAP_PROJ")]
         ];
 
         return ctx.editMessageText(detail, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) })
@@ -216,9 +217,9 @@ bot.on("callback_query", async (ctx) => {
         buttons.push([Markup.button.callback("🔙 Kembali ke Project", `SELPROJ_${projId}`)]);
 
         return ctx.editMessageText(
-            "Pilih Kategori Pekerjaan:",
-            { ...Markup.inlineKeyboard(buttons) }
-        ).catch(() => ctx.reply("Pilih Kategori Pekerjaan:", Markup.inlineKeyboard(buttons)));
+            "📂 *Pilih Kategori Pekerjaan:*\nSilakan tentukan modul kategori laporan Anda.",
+            { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+        ).catch(() => ctx.reply("📂 *Pilih Kategori Pekerjaan:*", Markup.inlineKeyboard(buttons)));
     }
 
     // Laporan Progres - Pilih Sub Kategori/Task
@@ -226,7 +227,7 @@ bot.on("callback_query", async (ctx) => {
         const cat = data.replace("LAPCAT_", "");
         const session = await getSession(telegram_id);
         const projId = session.data.project_id;
-        if(!projId) return ctx.reply("Sesi hilang. Ketik /start");
+        if(!projId) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
 
         let tasks: string[] = [];
         let catName = "";
@@ -258,9 +259,9 @@ bot.on("callback_query", async (ctx) => {
         await updateSession(telegram_id, 'LAP_MENU_CAT', { ...session.data, category: catName, tasks });
 
         return ctx.editMessageText(
-            `Kategori: *${catName}*\nPilih pekerjaan:`,
+            `📂 *Kategori:* ${catName}\n\n🛠️ *Pilih Jenis Pekerjaan* yang ingin Anda laporkan saat ini:`,
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
-        ).catch(() => ctx.reply(`Kategori: *${catName}*\nPilih pekerjaan:`, Markup.inlineKeyboard(buttons)));
+        ).catch(() => ctx.reply(`📂 *Kategori:* ${catName}\nPilih Pekerjaan:`, Markup.inlineKeyboard(buttons)));
     }
 
     if (data.startsWith("TASKSEL_")) {
@@ -272,7 +273,7 @@ bot.on("callback_query", async (ctx) => {
         if (session.data.category === "Persiapan") {
             await updateSession(telegram_id, 'LAP_WAIT_PERSIAPAN_STAT', { ...session.data, task: taskName });
             return ctx.editMessageText(
-                `Kategori: *Persiapan*\nTask: *${taskName}*\n\nPilih status penyelesaian:`,
+                `📌 *Kategori:* Persiapan\n🛠️ *Task:* ${taskName}\n\nPilih status penyelesaian untuk tahap ini:`,
                 { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
                     [Markup.button.callback("✅ DONE", "PERSIAPAN_STAT_DONE")],
                     [Markup.button.callback("❌ NOK", "PERSIAPAN_STAT_NOK")]
@@ -285,7 +286,7 @@ bot.on("callback_query", async (ctx) => {
         if (session.data.category === "Material Delivery") {
             await updateSession(telegram_id, 'LAP_WAIT_SEARCH_MAT', { ...session.data, task: taskName });
             return ctx.editMessageText(
-                `Task: *${taskName}*\n\n🔍 Silakan ketik sebagian atau keseluruhan *Nama Material* yang akan diinput:`,
+                `🛠️ *Task:* ${taskName}\n\n🔍 *Pencarian Material*\nSilakan ketik nama material (sebagian/keseluruhan) yang akan dilaporkan:`,
                 { parse_mode: 'Markdown' }
             );
         } else if (session.data.category === "Instalasi") {
@@ -304,7 +305,7 @@ bot.on("callback_query", async (ctx) => {
 
                     await updateSession(telegram_id, 'LAP_WAIT_SEARCH_BOQ_OPTIONAL', { ...session.data, task: taskName });
                     return ctx.editMessageText(
-                        `Task: *${taskName}*\n\nSilakan pilih Designator berikut, atau klik Pencarian Lainnya jika spesifik:`,
+                        `🛠️ *Task:* ${taskName}\n\n📋 *Pilihan Designator*\nSilakan pilih item yang tersedia di bawah ini, atau klik fitur *Pencarian Lainnya* jika Anda tidak menemukan yang spesifik:`,
                         { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
                     );
                 }
@@ -312,7 +313,7 @@ bot.on("callback_query", async (ctx) => {
             
             await updateSession(telegram_id, 'LAP_WAIT_SEARCH_BOQ', { ...session.data, task: taskName });
             return ctx.editMessageText(
-                `Task: *${taskName}*\n\n🔍 Silakan ketik kata kunci *Designator Instalasi* (contoh: tiang, galian, rodding, dsb):`,
+                `🛠️ *Task:* ${taskName}\n\n🔍 *Pencarian Designator*\nSilakan ketik kata kunci spesifik (contoh: tiang, galian, rodding, dsb):`,
                 { parse_mode: 'Markdown' }
             );
         }
@@ -320,15 +321,15 @@ bot.on("callback_query", async (ctx) => {
         // Jika selain itu (Finish, Closing), langsung ke volume. (Karena gak ada BOQ khusus)
         await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, task: taskName });
         return ctx.editMessageText(
-            `Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan berlalu berupa angka:`,
+            `🛠️ *Task:* ${taskName}\n\n✏️ *Pengisian Volume*\nSilakan masukkan total *Volume/Jumlah* yang telah dikerjakan (masukkan angka saja):`,
             { parse_mode: 'Markdown' }
-        ).catch(() => ctx.reply(`Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan berlalu berupa angka:`));
+        ).catch(() => ctx.reply(`🛠️ *Task:* ${taskName}\n✏️ Masukkan *Volume/Jumlah* kegiatan berlalu berupa angka:`));
     }
 
     if (data === "SEARCH_OTHER_BOQ") {
         const session = await getSession(telegram_id);
         await updateSession(telegram_id, 'LAP_WAIT_SEARCH_BOQ', session.data);
-        return ctx.editMessageText("🔍 Silakan ketik kata kunci *Designator Instalasi* (contoh: tiang, galian, rodding...):", { parse_mode: 'Markdown' });
+        return ctx.editMessageText("🔍 *Pencarian Manual Designator:*\nSilakan ketik kata kunci yang ingin Anda cari (contoh: tiang, galian, seling, dsb):", { parse_mode: 'Markdown' });
     }
 
     // Callback pencarian terpilih (dari fitur bot.on('text') pencarian BOQ/Mat)
@@ -343,7 +344,7 @@ bot.on("callback_query", async (ctx) => {
         if (id === "MANUAL") {
             // User akan ketik manual
             await updateSession(telegram_id, 'LAP_WAIT_MANUAL_INPUT_NAME', session.data);
-            return ctx.editMessageText("📝 Silakan ketik *Nama/Designator* secara manual:", { parse_mode: 'Markdown' });
+            return ctx.editMessageText("📝 *Input Manual Designator:*\nSilakan ketik secara manual nama material atau designator tersebut:", { parse_mode: 'Markdown' });
         } else {
             // Get from DB
             if (isBoq) {
@@ -356,7 +357,7 @@ bot.on("callback_query", async (ctx) => {
             
             await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, designator: designatorName, boq_id });
             return ctx.editMessageText(
-                `✔️ Anda memilih: *${designatorName}*\n\n✏️ Sekarang masukkan *Volume/Jumlah* berupa angka:`,
+                `✔️ *Item Terpilih:* ${designatorName}\n\n✏️ *Pengisian Volume*\nSilakan masukkan jumlah *Volume* yang telah dieksekusi (hanya angka, contoh: 10 atau 4.5):`,
                 { parse_mode: 'Markdown' }
             );
         }
@@ -366,9 +367,9 @@ bot.on("callback_query", async (ctx) => {
         const stat = data.replace("PERSIAPAN_STAT_", ""); // DONE or NOK
         const session = await getSession(telegram_id);
         const sd = session.data;
-        if(!sd.project_id) return ctx.reply("Sesi hilang. Ketik /start");
+        if(!sd.project_id) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
         
-        ctx.editMessageText(`⏳ Menyimpan status ${stat} untuk ${sd.task}...`);
+        ctx.editMessageText(`⏳ *Memproses Data...*\nMenyimpan status *${stat}* untuk tugas *${sd.task}*. Mohon tunggu... 🔄`, { parse_mode: 'Markdown' });
 
         const { error } = await supabase.from('laporan_kerja').insert({
             telegram_id: telegram_id,
@@ -383,7 +384,7 @@ bot.on("callback_query", async (ctx) => {
 
         if (error) {
             console.error(error);
-            return ctx.reply(`❌ Gagal menyimpan laporan ke database.\nErr: ${error.message}`);
+            return ctx.reply(`❌ *Gagal Menyimpan Data!*\n\n${error.message}`);
         }
 
         await clearSession(telegram_id);
@@ -391,13 +392,13 @@ bot.on("callback_query", async (ctx) => {
             [Markup.button.callback("📑 Kembali ke Laporan Project", `LAPPROG_${sd.project_id}`)],
             [Markup.button.callback("🏠 Menu Utama", `MENU_MAIN`)]
         ];
-        return ctx.reply(`✅ *Status ${sd.task} berhasil disimpan sebagai ${stat}!*`, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(finishBtns) });
+        return ctx.reply(`✅ *Berhasil!*\nStatus pekerjaan *${sd.task}* telah resmi tersimpan sebagai *${stat}*. 🎯`, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(finishBtns) });
     }
 
     if (data === "FINISH_PHOTO_UPLOAD") {
         const session = await getSession(telegram_id);
         const sd = session.data;
-        if(!sd.project_id) return ctx.reply("Sesi hilang. Ketik /start");
+        if(!sd.project_id) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
         
         // --- Photo Rule Validation ---
         const vol = sd.quantity || 1;
@@ -407,11 +408,11 @@ bot.on("callback_query", async (ctx) => {
         const photos = sd.photos || [];
         if (photos.length < requiredPhotos) {
             const extraMsg = getPhotoRequirementMessage(t);
-            return ctx.reply(`⚠️ Peringatan: Untuk pekerjaan *${t}* dengan volume *${vol}*, Anda DIWAJIBKAN mengunggah minimal *${requiredPhotos} foto* sesuai aturan.${extraMsg}\nAnda baru mengunggah *${photos.length} foto*. Silakan kirimkan foto tambahannya sekarang.`, { parse_mode: 'Markdown' });
+            return ctx.reply(`⚠️ *PERINGATAN STANDAR KUALITAS* ⚠️\n\nUntuk tugas *${t}* ber-volume *${vol}*, Anda wajib mengunggah minimum *${requiredPhotos} bukti foto* guna lolos dari kriteria validasi PT Sachi.${extraMsg}\nSaat ini foto yang ter-unggah baru *${photos.length}* lembar.\n\n📸 *Mohon lengkapi sisanya sekarang juga!*`, { parse_mode: 'Markdown' });
         }
         // -----------------------------
 
-        ctx.editMessageText("⏳ Menyimpan semua foto laporan...");
+        ctx.editMessageText("⏳ *Mengunggah Laporan...*\nMenyatukan data dan foto ke dalam sistem pusat PT Sachi. Mohon tunggu sebentar... ☁️", { parse_mode: 'Markdown' });
 
         const { error } = await supabase.from('laporan_kerja').insert({
             telegram_id: telegram_id,
@@ -427,7 +428,7 @@ bot.on("callback_query", async (ctx) => {
 
         if (error) {
             console.error(error);
-            return ctx.reply(`❌ Gagal menyimpan laporan ke database.\nErr: ${error.message}`);
+            return ctx.reply(`❌ *Gagal Menyimpan Data!*\n\n${error.message}`);
         }
 
         await clearSession(telegram_id);
@@ -435,7 +436,7 @@ bot.on("callback_query", async (ctx) => {
             [Markup.button.callback("📑 Kembali ke Laporan Project", `LAPPROG_${sd.project_id}`)],
             [Markup.button.callback("🏠 Menu Utama", `MENU_MAIN`)]
         ];
-        return ctx.reply("✅ *Laporan Berhasil Disimpan!*", { parse_mode: 'Markdown', ...Markup.inlineKeyboard(finishBtns) });
+        return ctx.reply("✅ *LAPORAN SUKSES DITERIMA!* 🎉\n\nData progres dan bukti foto evidens Anda sudah masuk dengan rapi ke Server. Terima kasih atas kerja kerasnya di lapangan! 💪", { parse_mode: 'Markdown', ...Markup.inlineKeyboard(finishBtns) });
     }
 
     // Status / Recap logic
@@ -443,26 +444,27 @@ bot.on("callback_query", async (ctx) => {
         const projId = data.replace("STATPROJ_", "");
         
         const { data: p } = await supabase.from('master_project').select('*').eq('id', projId).single();
-        if(!p) return ctx.reply("Project tidak ditemukan.");
+        if(!p) return ctx.reply("⚠️ *Data Tidak Ditemukan*\nID Project tersebut sudah tidak valid atau telah dihapus.", { parse_mode: 'Markdown' });
 
         const { data: laps } = await supabase.from('laporan_kerja').select('*').eq('project_id', projId);
 
-        let statusText = `*STATUS PROSES*:\n\n*Persiapan:*\n`;
+        let statusText = `📊 *REKAPITULASI PROGRES PROJECT*\n\n📌 *Tahap Persiapan:*\n`;
         const cPersiapan = laps?.filter(x=>x.task_category==='Persiapan')||[];
-        statusText += `a. Aanwijzing: ${cPersiapan.some(x=>x.task_name==='Aanwijzing')?'✅':'❌'}\n`;
-        statusText += `b. Perijinan: ${cPersiapan.some(x=>x.task_name==='Perijinan')?'✅':'❌'}\n\n`;
+        statusText += `  • Aanwijzing : ${cPersiapan.some(x=>x.task_name==='Aanwijzing')?'✅ Selesai':'❌ Belum'}\n`;
+        statusText += `  • Perijinan : ${cPersiapan.some(x=>x.task_name==='Perijinan')?'✅ Selesai':'❌ Belum'}\n\n`;
 
-        statusText += `*Instalasi (Total Ter-record):*\n`;
+        statusText += `🏗️ *Tahap Instalasi (Akumulasi Volume):*\n`;
         const cInstalasi = laps?.filter(x=>x.task_category==='Instalasi')||[];
         const grouped = cInstalasi.reduce((acc, obj) => {
             acc[obj.task_name] = (acc[obj.task_name] || 0) + parseFloat(obj.quantity||0);
             return acc;
         }, {} as any);
 
-        Object.keys(grouped).forEach(k => {
-            statusText += `- ${k}: ${grouped[k]}\n`;
+        const keys = Object.keys(grouped);
+        keys.forEach(k => {
+            statusText += `  • ${k} : *${grouped[k]}*\n`;
         });
-        if(Object.keys(grouped).length === 0) statusText += "Belum ada laporan instalasi.\n";
+        if(keys.length === 0) statusText += "  _(Belum ada progres instalasi yang tercatat)_\n";
 
         return ctx.editMessageText(statusText, { 
             parse_mode: 'Markdown', 
@@ -488,36 +490,36 @@ bot.on('text', async (ctx) => {
 
         if (step === 'NEW_PROJ_MITRA') {
             await updateSession(telegram_id, 'NEW_PROJ_USER', { projectDraft: { ...pd, mitra: text } });
-            return ctx.reply("2. Masukkan *Nama User*:", { parse_mode: 'Markdown' });
+            return ctx.reply("2️⃣ Silakan masukkan *Nama User*: 👤", { parse_mode: 'Markdown' });
         }
         if (step === 'NEW_PROJ_USER') {
             await updateSession(telegram_id, 'NEW_PROJ_SPMK', { projectDraft: { ...pd, user: text } });
-            return ctx.reply("3. Masukkan *No SPMK*:", { parse_mode: 'Markdown' });
+            return ctx.reply("3️⃣ Selanjutnya, masukkan *No SPMK*: 📄", { parse_mode: 'Markdown' });
         }
         if (step === 'NEW_PROJ_SPMK') {
             await updateSession(telegram_id, 'NEW_PROJ_NAMA', { projectDraft: { ...pd, spmk: text } });
-            return ctx.reply("4. Masukkan *Nama Project*:", { parse_mode: 'Markdown' });
+            return ctx.reply("4️⃣ Mari beri nama pada *Project* ini: 🏢", { parse_mode: 'Markdown' });
         }
         if (step === 'NEW_PROJ_NAMA') {
             await updateSession(telegram_id, 'NEW_PROJ_LOKASI', { projectDraft: { ...pd, nama_project: text } });
-            return ctx.reply("5. Masukkan *Lokasi*:", { parse_mode: 'Markdown' });
+            return ctx.reply("5️⃣ Tentukan juga *Lokasi* jalurnya: 📍", { parse_mode: 'Markdown' });
         }
         if (step === 'NEW_PROJ_LOKASI') {
             await updateSession(telegram_id, 'NEW_PROJ_KORDINAT', { projectDraft: { ...pd, lokasi: text } });
-            return ctx.reply("6. Masukkan *Kordinat* (atau ketik - jika tidak ada):", { parse_mode: 'Markdown' });
+            return ctx.reply("6️⃣ Terakhir, sertakan *Koordinat* (Ketik '-' jika belum siap): 🌍", { parse_mode: 'Markdown' });
         }
         if (step === 'NEW_PROJ_KORDINAT') {
             const finalPd = { ...pd, kordinat: text };
             await updateSession(telegram_id, 'NEW_PROJ_CONFIRM', { projectDraft: finalPd });
             
-            const recap = `*KONFIRMASI DATA HASIL PENGISIAN*\n\n`+
-                `Nama Mitra: ${finalPd.mitra}\n`+
-                `Nama User: ${finalPd.user}\n`+
-                `No SPMK: ${finalPd.spmk}\n`+
-                `Nama Project: ${finalPd.nama_project}\n`+
-                `Lokasi: ${finalPd.lokasi}\n`+
-                `Kordinat: ${finalPd.kordinat}\n\n`+
-                `Simpan ke database?`;
+            const recap = `📋 *KONFIRMASI DATA PROJECT BARU*\n\n`+
+                `🏢 *Nama Mitra*: ${finalPd.mitra}\n`+
+                `👤 *Nama User*: ${finalPd.user}\n`+
+                `📄 *No SPMK*: ${finalPd.spmk}\n`+
+                `🏗️ *Nama Project*: ${finalPd.nama_project}\n`+
+                `📍 *Lokasi*: ${finalPd.lokasi}\n`+
+                `🌍 *Koordinat*: ${finalPd.kordinat}\n\n`+
+                `Apakah data ini sudah benar dan siap disimpan? 💾`;
 
             return ctx.reply(recap, {
                 parse_mode: 'Markdown',
@@ -554,20 +556,20 @@ bot.on('text', async (ctx) => {
         buttons.push([Markup.button.callback("⚠️ Tidak Ada di Daftar (Ketik Manual)", `SELDB_${isBoq ? 'BOQ' : 'MAT'}_MANUAL`)]);
 
         return ctx.reply(
-            dbData.length > 0 ? `Ditemukan hasil dari kata kunci *'${text}'*:\nPilih yang paling sesuai:` : `Pencarian *'${text}'* tidak ditemukan.`, 
+            dbData.length > 0 ? `🔎 *Hasil Pencarian: '${text}'*\nKami menemukan beberapa item. Silakan pilih opsi yang paling akurat:` : `⚠️ *Pencarian Nihil*\nKami tidak menemukan item bernama '${text}'. Silakan ketik ulang atau pilih Input Manual. 💡`, 
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
         );
     }
 
     if (session.current_step === "LAP_WAIT_MANUAL_INPUT_NAME") {
         await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, designator: text });
-        return ctx.reply(`Catatan manual: *${text}*\n\n✏️ Sematkan *Volume/Jumlah* berupa angka:`, { parse_mode: 'Markdown' });
+        return ctx.reply(`📝 *Input Manual Diterima:*\nItem tercatat sebagai: *${text}*\n\n✏️ *Pengisian Volume:*\nBerapa angka akumulasi volume yang telah dikerjakan? (Hanya angka, contoh: 12.5):`, { parse_mode: 'Markdown' });
     }
     // =========================================================================
 
     if (session.current_step === "LAP_WAIT_QTY") {
         const vol = parseFloat(text.replace(',', '.'));
-        if (isNaN(vol)) return ctx.reply("Harap masukkan *angka* yang valid:");
+        if (isNaN(vol)) return ctx.reply("⚠️ *Format Tidak Sesuai*\nMohon pastikan Anda HANYA menggunakan karakter angka (contoh: 10 atau 2.5). Silakan ulangi:", { parse_mode: 'Markdown' });
         
         await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...session.data, quantity: vol, photos: [] });
 
@@ -581,9 +583,9 @@ bot.on('text', async (ctx) => {
         }
 
         return ctx.reply(
-            `Tahap Terakhir: Unggah Foto Eviden/Laporan${ruleInfo}`+
-            `📸 *Silakan kirim foto satu per satu.*\n`+
-            `Anda butuh mengunggah minimum *${requiredPhotos} foto*. Tombol Selesai akan muncul jika ketentuan ini sudah terpenuhi.`,
+            `🚀 *LANGKAH FINAL: UNGGAH BUKTI FOTO* 📸${ruleInfo}`+
+            `⚠️ _Sistem otomatis menahan penyelesaian sampai syarat kuota foto terpenuhi._\n\n`+
+            `👉 *Target Minimal Foto Valid: ${requiredPhotos} Lembar*\n\nSilakan kirimkan fotonya satu demi satu ke *Chatroom* secara utuh...`,
             { parse_mode: 'Markdown' }
         );
     }
@@ -596,7 +598,7 @@ bot.on('photo', async (ctx) => {
     const session = await getSession(telegram_id);
 
     if (session.current_step !== 'LAP_WAIT_PHOTO') {
-        return ctx.reply("Foto diterima, namun Anda sedang tidak dalam status unggah foto. Ketik /start.");
+        return ctx.reply("⚠️ *Konteks Tidak Sesuai*\nBot mendeteksi upload foto, namun pada riwayat sesi Anda belum ada prosedur pengumpulan bukti. Silakan mulai navigasi secara normal lewat ketik /start. 🔄", { parse_mode: 'Markdown' });
     }
 
     try {
@@ -604,7 +606,7 @@ bot.on('photo', async (ctx) => {
         if (!photo) return;
         
         // Let user know it's queued
-        const initMsg = await ctx.reply("⏳ _Uploading..._", { parse_mode: "Markdown" });
+        const initMsg = await ctx.reply("⏳ _Sedang Mengenkripsi dan Memproses Foto ke Server..._ ☁️", { parse_mode: "Markdown" });
 
         const fileLink = await ctx.telegram.getFileLink(photo.file_id);
         const response = await fetch(fileLink.toString());
@@ -626,10 +628,10 @@ bot.on('photo', async (ctx) => {
                 ctx.chat.id, 
                 initMsg.message_id, 
                 undefined, 
-                `✅ *Foto Terupload (${photos.length}/${requiredPhotos})*\n\nTarget minimal foto telah terpenuhi! Silakan klik tombol *Selesai* jika tak ada tambahan.`, 
+                `✅ *Bukti Foto Terekam (${photos.length}/${requiredPhotos})* 🖼️\n\nSelamat! Target minimum batas dokumentasi telah tercukupi.\n\nKlik tombol *[✅ SELESAIKAN LAPORAN]* di bawah ini untuk merangkum datanya, atau kirim lagi sisa potret lainnya jika memang masih ada.`, 
                 { 
                     parse_mode: "Markdown",
-                    ...Markup.inlineKeyboard([[Markup.button.callback("✅ Selesai Upload Foto", `FINISH_PHOTO_UPLOAD`)]])
+                    ...Markup.inlineKeyboard([[Markup.button.callback("✅ SELESAIKAN LAPORAN BUKTI", `FINISH_PHOTO_UPLOAD`)]])
                 }
             );
         } else {
@@ -638,7 +640,7 @@ bot.on('photo', async (ctx) => {
                 ctx.chat.id, 
                 initMsg.message_id, 
                 undefined, 
-                `✅ *Foto Terupload (${photos.length}/${requiredPhotos})*\n\nBelum memenuhi syarat. Silakan kirim *${remains}* foto selanjutnya...`, 
+                `📈 *Progres Foto Diterima (${photos.length}/${requiredPhotos})* 🖼️\n\nKalkulasi sistem masih memerlukan tambahan *${remains}* lembar foto lagi untuk mencukupi syarat.\n\nSilakan luncurkan foto berikutnya... 🚀`, 
                 { parse_mode: "Markdown" }
             );
         }
