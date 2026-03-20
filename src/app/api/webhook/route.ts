@@ -567,8 +567,15 @@ bot.on('text', async (ctx) => {
         
         await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...session.data, quantity: vol, photos: [] });
 
+        let ruleInfo = getPhotoRequirementMessage(session.data.task || '').replace(/[_"]/g, '');
+        if (ruleInfo.trim() !== '') {
+            ruleInfo = `\n📋 *Syarat Khusus:*\n${ruleInfo}\n`;
+        } else {
+            ruleInfo = "\n\n";
+        }
+
         return ctx.reply(
-            `Tahap Terakhir: Unggah Foto Eviden/Laporan\n\n`+
+            `Tahap Terakhir: Unggah Foto Eviden/Laporan${ruleInfo}`+
             `📸 *Silakan kirim foto satu per satu.*\n`+
             `Jika semua foto sudah diunggah, klik tombol *[✅ Selesai Upload]* di bawah ini agar disimpan.`,
             { 
