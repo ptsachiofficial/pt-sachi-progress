@@ -20,13 +20,13 @@ function parseCSV(filePath) {
     // Skip header (line 0)
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i].trim();
-        if (!line) continue;
+        if (!line || line === ';;;') continue; // skip empty and trailing lines
 
-        // Split by semicolon, handling quotes if necessary (though simple split works for these files as they don't seem to have embedded semicolons, wait, some have quotes!)
-        // Using a simple regex to split by semicolon honoring quotes
+        // Split by semicolon, handling quotes
         const regex = /;(?=(?:(?:[^"]*"){2})*[^"]*$)/;
         let parts = line.split(regex).map(p => p.replace(/^"|"$/g, '').trim());
 
+        // Must have at least ITEM DESIGN and URAIAN DESIGN
         if (parts.length >= 2 && parts[0]) {
             items.push(parts);
         }
@@ -37,20 +37,20 @@ function parseCSV(filePath) {
 async function seed() {
     console.log("Reading CSV files...");
 
-    // Boq
+    // Boq (designator.csv)
     const boqData = parseCSV('../designator.csv');
     const boqRows = boqData.map(p => ({
         task_name: p[0],
-        description: p[1] || null,
-        unit: p[2] || null
+        description: p[1] || '',
+        unit: p[2] || ''
     }));
 
-    // Material
+    // Material (material.csv)
     const materialData = parseCSV('../material.csv');
     const materialRows = materialData.map(p => ({
         code: p[0],
-        material_name: p[1] || null,
-        unit: p[2] || null
+        material_name: p[1] || '',
+        unit: p[2] || ''
     }));
 
     if (boqRows.length === 0 && materialRows.length === 0) {
@@ -58,38 +58,31 @@ async function seed() {
         return;
     }
 
-    console.log(`Pusging ${boqRows.length} BOQ items and ${materialRows.length} Material items...`);
+    console.log(`Pushing ${boqRows.length} BOQ items and ${materialRows.length} Material items...`);
 
-    const dummyProjects = [
-        { project_name: "Proyek Fiber Jakarta Pusat", area: "Jakarta", site_name: "Site-JKT-01" },
-        { project_name: "Proyek Jaringan Surabaya", area: "Surabaya", site_name: "Site-SBY-02" },
-        { project_name: "Perawatan FAT Bandung", area: "Bandung", site_name: "Site-BDG-03" },
-        { project_name: "Instalasi Baru ODC Medan", area: "Medan", site_name: "Site-MDN-04" },
-        { project_name: "Korektif Maintenance", area: "Nasional", site_name: "Seluruh Site" }
-    ];
-
-    // Clear existing items just in case (optional, we'll just insert)
-    // Or upsert. But tables don't have constraints on name to use upsert easily.
-    // Instead, let's delete all and reinsert.
+    // Clean up specific tables carefully (do not truncate if they have relations, wait we can delete all since we recreate them now)
+    // Actually we only delete if needed, let's delete existing master_boq and master_material
     await supabase.from('master_boq').delete().neq('id', '00000000-0000-0000-0000-000000000000');
     await supabase.from('master_material').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-    await supabase.from('master_project').delete().neq('id', '00000000-0000-0000-0000-000000000000');
-
-    console.log("Inserting projects...");
-    await supabase.from('master_project').insert(dummyProjects);
 
     // Insert in chunks of 500
+    let insertedBoq = 0;
     for (let i = 0; i < boqRows.length; i += 500) {
         const chunk = boqRows.slice(i, i + 500);
         const { error } = await supabase.from('master_boq').insert(chunk);
         if (error) console.error("Error inserting BOQ:", error.message);
+        else insertedBoq += chunk.length;
     }
+    console.log(`Inserted ${insertedBoq} BOQ.`);
 
+    let insertedMat = 0;
     for (let i = 0; i < materialRows.length; i += 500) {
         const chunk = materialRows.slice(i, i + 500);
         const { error } = await supabase.from('master_material').insert(chunk);
         if (error) console.error("Error inserting Materials:", error.message);
+        else insertedMat += chunk.length;
     }
+    console.log(`Inserted ${insertedMat} Material.`);
 
     console.log("Done seeding CSVs into database!");
 }

@@ -228,17 +228,59 @@ bot.on("callback_query", async (ctx) => {
             ).catch(() => ctx.reply(`Pilih status penyelesaian untuk ${taskName}:`));
         }
 
-        await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, task: taskName });
-
+        // ================= NEW DB SEARCH FLOW =================
+        // Jika Material Delivery atau Instalasi, minta ketik keyword pencarian.
         if (session.data.category === "Material Delivery") {
-            await updateSession(telegram_id, 'LAP_WAIT_DESIGNATOR', { ...session.data, task: taskName });
-            return ctx.editMessageText("Ketik *Designator / Nama Material* yang akan diinput:", { parse_mode: 'Markdown' });
+            await updateSession(telegram_id, 'LAP_WAIT_SEARCH_MAT', { ...session.data, task: taskName });
+            return ctx.editMessageText(
+                `Task: *${taskName}*\n\n🔍 Silakan ketik sebagian atau keseluruhan *Nama Material* yang akan diinput:`,
+                { parse_mode: 'Markdown' }
+            );
+        } else if (session.data.category === "Instalasi") {
+            await updateSession(telegram_id, 'LAP_WAIT_SEARCH_BOQ', { ...session.data, task: taskName });
+            return ctx.editMessageText(
+                `Task: *${taskName}*\n\n🔍 Silakan ketik kata kunci *Designator Instalasi* (contoh: tiang, galian, rodding, dsb):`,
+                { parse_mode: 'Markdown' }
+            );
         }
 
+        // Jika selain itu (Finish, Closing), langsung ke volume. (Karena gak ada BOQ khusus)
+        await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, task: taskName });
         return ctx.editMessageText(
-            `Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan untuk hari ini berupa angka (contoh: 50 atau 1):`,
+            `Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan berlalu berupa angka:`,
             { parse_mode: 'Markdown' }
-        ).catch(() => ctx.reply(`Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan untuk hari ini berupa angka:`));
+        ).catch(() => ctx.reply(`Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan berlalu berupa angka:`));
+    }
+
+    // Callback pencarian terpilih (dari fitur bot.on('text') pencarian BOQ/Mat)
+    if (data.startsWith("SELDB_BOQ_") || data.startsWith("SELDB_MAT_")) {
+        const isBoq = data.startsWith("SELDB_BOQ_");
+        const id = data.replace(isBoq ? "SELDB_BOQ_" : "SELDB_MAT_", "");
+        const session = await getSession(telegram_id);
+        
+        let designatorName = "";
+        let boq_id = null;
+
+        if (id === "MANUAL") {
+            // User akan ketik manual
+            await updateSession(telegram_id, 'LAP_WAIT_MANUAL_INPUT_NAME', session.data);
+            return ctx.editMessageText("📝 Silakan ketik *Nama/Designator* secara manual:", { parse_mode: 'Markdown' });
+        } else {
+            // Get from DB
+            if (isBoq) {
+                const { data: dbData } = await supabase.from('master_boq').select('*').eq('id', id).single();
+                if(dbData) { designatorName = dbData.task_name; boq_id = dbData.id; }
+            } else {
+                const { data: dbData } = await supabase.from('master_material').select('*').eq('id', id).single();
+                if(dbData) { designatorName = dbData.material_name; boq_id = dbData.id; } // BOQ id is kept loosely for material too
+            }
+            
+            await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, designator: designatorName, boq_id });
+            return ctx.editMessageText(
+                `✔️ Anda memilih: *${designatorName}*\n\n✏️ Sekarang masukkan *Volume/Jumlah* berupa angka:`,
+                { parse_mode: 'Markdown' }
+            );
+        }
     }
 
     if (data.startsWith("PERSIAPAN_STAT_")) {
@@ -303,6 +345,7 @@ bot.on("callback_query", async (ctx) => {
         const { error } = await supabase.from('laporan_kerja').insert({
             telegram_id: telegram_id,
             project_id: sd.project_id,
+            boq_id: sd.boq_id,
             task_category: sd.category,
             task_name: sd.task + (sd.designator ? ` (${sd.designator})` : ''),
             quantity: vol,
@@ -416,10 +459,40 @@ bot.on('text', async (ctx) => {
     }
 
     // 2. LAPORAN PROGRES TEXT INPUTS
-    if (session.current_step === "LAP_WAIT_DESIGNATOR") {
-        await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, designator: text });
-        return ctx.reply(`Material: *${text}*\n✏️ Masukkan *Volume/Jumlah* berupa angka:`, { parse_mode: 'Markdown' });
+    // ============================================ DB SEARCH ==================
+    if (session.current_step === "LAP_WAIT_SEARCH_BOQ" || session.current_step === "LAP_WAIT_SEARCH_MAT") {
+        const isBoq = session.current_step === "LAP_WAIT_SEARCH_BOQ";
+        
+        let dbData = [];
+        if (isBoq) {
+            const { data } = await supabase.from('master_boq').select('id, task_name').ilike('task_name', `%${text}%`).limit(8);
+            dbData = data || [];
+        } else {
+            const { data } = await supabase.from('master_material').select('id, material_name').ilike('material_name', `%${text}%`).limit(8);
+            dbData = data || [];
+        }
+
+        const buttons = dbData.map(item => [
+            Markup.button.callback(
+                isBoq ? item.task_name : item.material_name,
+                isBoq ? `SELDB_BOQ_${item.id}` : `SELDB_MAT_${item.id}`
+            )
+        ]);
+
+        // Beri opsi manual jika tdk ketemu
+        buttons.push([Markup.button.callback("⚠️ Tidak Ada di Daftar (Ketik Manual)", `SELDB_${isBoq ? 'BOQ' : 'MAT'}_MANUAL`)]);
+
+        return ctx.reply(
+            dbData.length > 0 ? `Ditemukan hasil dari kata kunci *'${text}'*:\nPilih yang paling sesuai:` : `Pencarian *'${text}'* tidak ditemukan.`, 
+            { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
+        );
     }
+
+    if (session.current_step === "LAP_WAIT_MANUAL_INPUT_NAME") {
+        await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, designator: text });
+        return ctx.reply(`Catatan manual: *${text}*\n\n✏️ Sematkan *Volume/Jumlah* berupa angka:`, { parse_mode: 'Markdown' });
+    }
+    // =========================================================================
 
     if (session.current_step === "LAP_WAIT_QTY") {
         const vol = parseFloat(text.replace(',', '.'));
@@ -430,7 +503,7 @@ bot.on('text', async (ctx) => {
         return ctx.reply(
             `Tahap Terakhir: Unggah Foto Eviden/Laporan\n\n`+
             `📸 *Silakan kirim foto satu per satu.*\n`+
-            `Jika semua foto sudah selesai diunggah, klik tombol *[Selesai Upload]* di bawah.`,
+            `Jika semua foto sudah diunggah, klik tombol *[✅ Selesai Upload]* di bawah ini agar disimpan.`,
             { 
                 parse_mode: 'Markdown',
                 ...Markup.inlineKeyboard([[Markup.button.callback("✅ Selesai Upload", `FINISH_PHOTO_UPLOAD`)]])
@@ -472,7 +545,7 @@ bot.on('photo', async (ctx) => {
             ctx.chat.id, 
             initMsg.message_id, 
             undefined, 
-            `✅ *Foto ${photos.length} Berhasil Diunggah!*\nSilakan kirim foto lagi jika ada, atau klik selesai.`, 
+            `✅ *Foto ke-${photos.length} Berhasil Diunggah!*\nSilakan kirim foto tambahannya ke sini jika ada, lalu klik *Selesai*.`, 
             { 
                 parse_mode: "Markdown",
                 ...Markup.inlineKeyboard([[Markup.button.callback("✅ Selesai Upload Foto", `FINISH_PHOTO_UPLOAD`)]])
