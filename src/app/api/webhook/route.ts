@@ -54,17 +54,19 @@ const TASK_DESIGNATOR_MAP: Record<string, string[]> = {
 
 // --- Helper Info Syarat Foto Khusus berdasarkan ROLEBOT.txt ---
 function getPhotoRequirementMessage(t: string): string {
-    if (t.includes('PEMBUATAN & PEMASANGAN HANDHOLE')) return "\n  . FOTO PENGUKURAN PANJANG\n  . FOTO PENGUKURAN LEBAR\n  . FOTO PENGUKURAN KEDALAMAN\n  . FOTO TAMPAK JAUH FULL\n";
-    if (t.includes('PENARIKKAN KABEL FEEDER') || t.includes('PENARIKKAN KABEL DISTRIBUSI')) return "\n  . FOTO MARKING START\n  . FOTO MARKING END\n  (ditambah 1 foto per 50 METER)\n";
-    if (t.includes('PEMASANGAN TIANG')) return "\n  . TAMPAK JAUH\n  . TAMPAK ATAS\n  . TAMPAK BAWAH (COR)\n  . TAMPAK DEKAT\n";
-    if (t.includes('PEMASANGAN ODC')) return "\n  . TAMPAK DALAM TERLIHAT FULL\n  . TAMPAK LUAR POSISI TERTUTUP\n  . TAMPAK JAUH\n  . TAMPAK BLAKANG\n";
-    if (t.includes('PEMASANGAN ODP')) return "\n  . TAMPAK SAMBUNGAN\n  . TAMPAK ACC ODP\n  . TAMPAK FULL POSISI TERTUTUP DAN SUDAH TERLABEL\n  . EVIDEN REDAMAN PER PORT 1-16\n  . TAMPAK JAUH\n";
-    if (t.includes('PEMASANGAN DAN TERMINASI OTB')) return "\n  . TAMPAK DEPAN\n  . TAMPAK JAUH\n  . EVIDEN SAAT TERMINASI MIN 4 FOTO\n  . EVIDEN PENGUKURAN\n  . TAMPAK DEKAT/PROSES\n";
-    if (t.includes('PEMASANGAN CLOSURE')) return "\n  . TAMPAK DALAM\n  . TAMPAK LUAR\n  . EVIDEN SAAT TERMINASI TIAP KASET\n  . TAMPAK JAUH (SUDAH TERTUTUP)\n";
-    if (t.includes('TERMINASI ODC')) return "\n  . TAMPAK BESTRAY TERBUKA SAAT SETELAH SELESAI TERMINASI\n  . TAMPAK BESTRAY TERPASANG SAMBIL MENUNJUK\n";
-    if (t.includes('TERMINASI ODP')) return "\n  . TAMPAK SETELAH SELESAI TERMINASI\n  . TAMPAK PROGRES TERMINASI\n";
-    if (t.includes('TERMINASI CLOSURE')) return "\n  . TAMPAK TIAP KASET\n  . TAMPAK PROGRES\n";
-    if (t.includes('PERAPIHAN')) return "\n  . UPLOAD FOTO LABELING MIN 4 FOTO\n";
+    if (t.includes('BC-TR (GALIAN)')) return "\n\n  _\"upload foto dari volume satuan per 20M 1foto jadi jika volume di isi 100 maka wajib upload 5foto\"_\n";
+    if (t.includes('PEMASANGAN SUBDUCT')) return "\n\n  _\"upload foto min 4 foto per laporan\"_\n";
+    if (t.includes('HANDHOLE')) return "\n\n  _\". FOTO PENGUKURAN PANJANG\n  . FOTO PENGUKURAN LEBAR\n  . FOTO PENGUKURAN KEDALAMAN\n  . FOTO TAMPAK JAUH FULL\"_\n";
+    if (t.includes('KABEL')) return "\n\n  _\"FOTO Wajib sebelum bedasarkan volume 2 foto \n  . FOTO MARKING START\n  . FOTO MARKING END\n  upload foto dari volume satuan per 50M 1foto jadi jika volume di isi 100 maka wajib upload 2foto\"_\n";
+    if (t.includes('PEMASANGAN TIANG')) return "\n\n  _\". TAMPAK JAUH\n  . TAMPAK ATAS\n  . TAMPAK BAWAH (COR)\n  . TAMPAK DEKAT\"_\n";
+    if (t.includes('PEMASANGAN ODC')) return "\n\n  _\". TAMPAK DALAM TERLIHAT FULL\n  . TAMPAK LUAR POSISI TERTUTUP\n  . TAMPAK JAUH\n  . TAMPAK BLAKANG\"_\n";
+    if (t.includes('PEMASANGAN ODP')) return "\n\n  _\". TAMPAK SAMBUNGAN\n  . TAMPAK ACC ODP\n  . TAMPAK FULL POSISI TERTUTUP DAN SUDAH TERLABEL\n  . EVIDEN REDAMAN PER PORT 1-16\n  . TAMPAK JAUH\"_\n";
+    if (t.includes('PEMASANGAN DAN TERMINASI OTB')) return "\n\n  _\". TAMPAK DEPAN\n  . TAMPAK JAUH\n  . EVIDEN SAAT TERMINASI MIN 4 FOTO\n  . EVIDEN PENGUKURAN\n  . TAMPAK DEKAT/PROSES\"_\n";
+    if (t.includes('PEMASANGAN CLOSURE')) return "\n\n  _\". TAMPAK DALAM\n  . TAMPAK LUAR\n  . EVIDEN SAAT TERMINASI TIAP KASET\n  . TAMPAK JAUH (SUDAH TERTUTUP)\"_\n";
+    if (t.includes('TERMINASI ODC')) return "\n\n  _\"upload foto minimal 2 foto setiap 12 volume core\n  . TAMPAK BESTRAY TERBUKA SAAT SETELAH SELESAI TERMINASI\n  . TAMPAK BESTRAY TERPASANG SAMBIL MENUNJUK\"_\n";
+    if (t.includes('TERMINASI ODP')) return "\n\n  _\"upload foto minimal 2 foto setiap 1 volume core\n  . TAMPAK SETELAH SELESAI TERMINASI\n  . TAMPAK PROGRES TERMINASI\"_\n";
+    if (t.includes('TERMINASI CLOSURE')) return "\n\n  _\"upload foto minimal 2 foto setiap 12 volume core\n  . TAMPAK TIAP KASET\n  . TAMPAK PROGRES\"_\n";
+    if (t.includes('PERAPIHAN')) return "\n\n  _\"UPLOAD FOTO LABELING MIN 4 FOTO\"_\n";
     return "\n";
 }
 
