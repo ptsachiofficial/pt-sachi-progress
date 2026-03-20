@@ -54,10 +54,10 @@ const TASK_DESIGNATOR_MAP: Record<string, string[]> = {
 
 // --- Helper Info Syarat Foto Khusus berdasarkan ROLEBOT.txt ---
 function getPhotoRequirementMessage(t: string): string {
-    if (t.includes('BC-TR (GALIAN)')) return "\n\n  _\"upload foto dari volume satuan per 20M 1foto jadi jika volume di isi 100 maka wajib upload 5foto\"_\n";
+    if (t.includes('BC-TR (GALIAN)')) return "\n\n  _\"upload foto dari volume satuan per 50M 1foto jadi jika volume di isi 100 maka wajib upload 2foto\"_\n";
     if (t.includes('PEMASANGAN SUBDUCT')) return "\n\n  _\"upload foto min 4 foto per laporan\"_\n";
     if (t.includes('HANDHOLE')) return "\n\n  _\". FOTO PENGUKURAN PANJANG\n  . FOTO PENGUKURAN LEBAR\n  . FOTO PENGUKURAN KEDALAMAN\n  . FOTO TAMPAK JAUH FULL\"_\n";
-    if (t.includes('KABEL')) return "\n\n  _\"FOTO Wajib sebelum bedasarkan volume 2 foto \n  . FOTO MARKING START\n  . FOTO MARKING END\n  upload foto dari volume satuan per 50M 1foto jadi jika volume di isi 100 maka wajib upload 2foto\"_\n";
+    if (t.includes('KABEL')) return "\n\n  _\"FOTO Wajib berdasarkan volume 2 foto \n  . FOTO MARKING START\n  . FOTO MARKING END\n  upload foto dari volume satuan per 200M 1foto jadi jika volume di isi 400 maka wajib upload 2foto\"_\n";
     if (t.includes('PEMASANGAN TIANG')) return "\n\n  _\". TAMPAK JAUH\n  . TAMPAK ATAS\n  . TAMPAK BAWAH (COR)\n  . TAMPAK DEKAT\"_\n";
     if (t.includes('PEMASANGAN ODC')) return "\n\n  _\". TAMPAK DALAM TERLIHAT FULL\n  . TAMPAK LUAR POSISI TERTUTUP\n  . TAMPAK JAUH\n  . TAMPAK BLAKANG\"_\n";
     if (t.includes('PEMASANGAN ODP')) return "\n\n  _\". TAMPAK SAMBUNGAN\n  . TAMPAK ACC ODP\n  . TAMPAK FULL POSISI TERTUTUP DAN SUDAH TERLABEL\n  . EVIDEN REDAMAN PER PORT 1-16\n  . TAMPAK JAUH\"_\n";
@@ -72,10 +72,10 @@ function getPhotoRequirementMessage(t: string): string {
 
 function getRequiredPhotoCount(t: string, vol: number): number {
     let requiredPhotos = 1;
-    if (t.includes('GALIAN') || t.includes('ROJOK')) requiredPhotos = Math.max(1, Math.ceil(vol / 20));
+    if (t.includes('GALIAN') || t.includes('ROJOK')) requiredPhotos = Math.max(1, Math.ceil(vol / 50));
     else if (t.includes('SUBDUCT') || t.includes('HDPE') || t.includes('PEMASANGAN ODC') || t.includes('CLOSURE') || t.includes('PERAPIHAN')) requiredPhotos = 4;
     else if (t.includes('HANDHOLE') || t.includes('TIANG')) requiredPhotos = vol * 4;
-    else if (t.includes('FEEDER') || t.includes('DISTRIBUSI')) requiredPhotos = 2 + Math.ceil(vol / 50);
+    else if (t.includes('FEEDER') || t.includes('DISTRIBUSI')) requiredPhotos = 2 + Math.ceil(vol / 200);
     else if (t.includes('PEMASANGAN ODP')) requiredPhotos = vol * 20;
     else if (t.includes('OTB')) requiredPhotos = 8;
     else if (t.includes('TERMINASI ODC') || t.includes('TERMINASI CLOSURE')) requiredPhotos = Math.max(1, Math.ceil(vol / 12) * 2);
