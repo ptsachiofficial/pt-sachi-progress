@@ -70,6 +70,19 @@ function getPhotoRequirementMessage(t: string): string {
     return "\n";
 }
 
+function getRequiredPhotoCount(t: string, vol: number): number {
+    let requiredPhotos = 1;
+    if (t.includes('GALIAN') || t.includes('ROJOK')) requiredPhotos = Math.max(1, Math.ceil(vol / 20));
+    else if (t.includes('SUBDUCT') || t.includes('HDPE') || t.includes('PEMASANGAN ODC') || t.includes('CLOSURE') || t.includes('PERAPIHAN')) requiredPhotos = 4;
+    else if (t.includes('HANDHOLE') || t.includes('TIANG')) requiredPhotos = vol * 4;
+    else if (t.includes('FEEDER') || t.includes('DISTRIBUSI')) requiredPhotos = 2 + Math.ceil(vol / 50);
+    else if (t.includes('PEMASANGAN ODP')) requiredPhotos = vol * 20;
+    else if (t.includes('OTB')) requiredPhotos = 8;
+    else if (t.includes('TERMINASI ODC') || t.includes('TERMINASI CLOSURE')) requiredPhotos = Math.max(1, Math.ceil(vol / 12) * 2);
+    else if (t.includes('TERMINASI ODP')) requiredPhotos = vol * 2;
+    return requiredPhotos;
+}
+
 // --- COMMANDS ---
 bot.start(async (ctx) => {
     await clearSession(ctx.from.id);
@@ -387,18 +400,9 @@ bot.on("callback_query", async (ctx) => {
         if(!sd.project_id) return ctx.reply("Sesi hilang. Ketik /start");
         
         // --- Photo Rule Validation ---
-        let requiredPhotos = 1;
         const vol = sd.quantity || 1;
         const t = sd.task || "";
-        
-        if (t.includes('GALIAN') || t.includes('ROJOK')) requiredPhotos = Math.max(1, Math.ceil(vol / 20));
-        else if (t.includes('SUBDUCT') || t.includes('HDPE') || t.includes('PEMASANGAN ODC') || t.includes('CLOSURE') || t.includes('PERAPIHAN')) requiredPhotos = 4;
-        else if (t.includes('HANDHOLE') || t.includes('TIANG')) requiredPhotos = vol * 4;
-        else if (t.includes('FEEDER') || t.includes('DISTRIBUSI')) requiredPhotos = 2 + Math.ceil(vol / 50);
-        else if (t.includes('PEMASANGAN ODP')) requiredPhotos = vol * 20;
-        else if (t.includes('OTB')) requiredPhotos = 8;
-        else if (t.includes('TERMINASI ODC') || t.includes('TERMINASI CLOSURE')) requiredPhotos = Math.max(1, Math.ceil(vol / 12) * 2);
-        else if (t.includes('TERMINASI ODP')) requiredPhotos = vol * 2;
+        const requiredPhotos = getRequiredPhotoCount(t, vol);
         
         const photos = sd.photos || [];
         if (photos.length < requiredPhotos) {
@@ -567,6 +571,8 @@ bot.on('text', async (ctx) => {
         
         await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...session.data, quantity: vol, photos: [] });
 
+        const requiredPhotos = getRequiredPhotoCount(session.data.task || '', vol);
+
         let ruleInfo = getPhotoRequirementMessage(session.data.task || '').replace(/[_"]/g, '');
         if (ruleInfo.trim() !== '') {
             ruleInfo = `\n📋 *Syarat Khusus:*\n${ruleInfo}\n`;
@@ -577,11 +583,8 @@ bot.on('text', async (ctx) => {
         return ctx.reply(
             `Tahap Terakhir: Unggah Foto Eviden/Laporan${ruleInfo}`+
             `📸 *Silakan kirim foto satu per satu.*\n`+
-            `Jika semua foto sudah diunggah, klik tombol *[✅ Selesai Upload]* di bawah ini agar disimpan.`,
-            { 
-                parse_mode: 'Markdown',
-                ...Markup.inlineKeyboard([[Markup.button.callback("✅ Selesai Upload", `FINISH_PHOTO_UPLOAD`)]])
-            }
+            `Anda butuh mengunggah minimum *${requiredPhotos} foto*. Tombol Selesai akan muncul jika ketentuan ini sudah terpenuhi.`,
+            { parse_mode: 'Markdown' }
         );
     }
 
@@ -615,16 +618,30 @@ bot.on('photo', async (ctx) => {
         photos.push(photoUrl);
         await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...session.data, photos });
 
-        await ctx.telegram.editMessageText(
-            ctx.chat.id, 
-            initMsg.message_id, 
-            undefined, 
-            `✅ *Foto ke-${photos.length} Berhasil Diunggah!*\nSilakan kirim foto tambahannya ke sini jika ada, lalu klik *Selesai*.`, 
-            { 
-                parse_mode: "Markdown",
-                ...Markup.inlineKeyboard([[Markup.button.callback("✅ Selesai Upload Foto", `FINISH_PHOTO_UPLOAD`)]])
-            }
-        );
+        const vol = session.data.quantity || 1;
+        const requiredPhotos = getRequiredPhotoCount(session.data.task || '', vol);
+
+        if (photos.length >= requiredPhotos) {
+            await ctx.telegram.editMessageText(
+                ctx.chat.id, 
+                initMsg.message_id, 
+                undefined, 
+                `✅ *Foto Terupload (${photos.length}/${requiredPhotos})*\n\nTarget minimal foto telah terpenuhi! Silakan klik tombol *Selesai* jika tak ada tambahan.`, 
+                { 
+                    parse_mode: "Markdown",
+                    ...Markup.inlineKeyboard([[Markup.button.callback("✅ Selesai Upload Foto", `FINISH_PHOTO_UPLOAD`)]])
+                }
+            );
+        } else {
+            const remains = requiredPhotos - photos.length;
+            await ctx.telegram.editMessageText(
+                ctx.chat.id, 
+                initMsg.message_id, 
+                undefined, 
+                `✅ *Foto Terupload (${photos.length}/${requiredPhotos})*\n\nBelum memenuhi syarat. Silakan kirim *${remains}* foto selanjutnya...`, 
+                { parse_mode: "Markdown" }
+            );
+        }
 
     } catch (e: any) {
         console.error("Upload Error:", e);
