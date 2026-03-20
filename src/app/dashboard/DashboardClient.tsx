@@ -3,20 +3,52 @@ import { useState } from "react";
 
 export default function DashboardClient({ projects, laporan }: { projects: any[], laporan: any[] }) {
     const [activeTab, setActiveTab] = useState("dashboard"); // 'dashboard', 'file_laporan', 'keuangan'
+    
+    // Breadcrumb / Hierarki Folder
     const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+    const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+    const [selectedDesignator, setSelectedDesignator] = useState<string | null>(null);
 
-    // Overview Stats
+    const resetSelection = () => {
+        setSelectedProjectId(null);
+        setSelectedCategory(null);
+        setSelectedDesignator(null);
+    };
+
+    // Data Helpers
     const totalProjects = projects.length;
     const totalReports = laporan.length;
     
-    // Filtered reports for detailed view
-    const filteredLaporan = selectedProjectId ? laporan.filter(l => l.project_id === selectedProjectId || l.lokasi) : laporan; // fallback filter logic if project_id isn't directly inside view_laporan_lengkap wait it isn't.
-
-    // Let's refine the filter: view_laporan_lengkap might not have project_id, but it has project_name or we can join it.
-    // Wait, let's just use the selected project's name to filter from view_laporan_lengkap since it has project_name.
-    
     const selectedProjectInfo = projects.find(p => p.id === selectedProjectId);
     const displayedLaporan = selectedProjectInfo ? laporan.filter(l => l.project_name === selectedProjectInfo.project_name) : [];
+
+    // Pengelompokan Kategori
+    const reportsByCategory = displayedLaporan.reduce((acc: Record<string, any[]>, rep: any) => {
+        const cat = rep.task_category || "Lainnya";
+        if (!acc[cat]) acc[cat] = [];
+        acc[cat].push(rep);
+        return acc;
+    }, {} as Record<string, any[]>);
+    
+    // Jika Kategori Dipilih
+    const reportsInCategory = selectedCategory ? (reportsByCategory[selectedCategory] || []) : [];
+    
+    // Pengelompokan Designator dalam Kategori 
+    const reportsByDesignator = reportsInCategory.reduce((acc: Record<string, any[]>, rep: any) => {
+        const desig = rep.boq_name || rep.task_name || "Lainnya";
+        if (!acc[desig]) acc[desig] = [];
+        acc[desig].push(rep);
+        return acc;
+    }, {} as Record<string, any[]>);
+
+    // Jika Designator Dipilih
+    const reportsInDesignator = selectedDesignator ? (reportsByDesignator[selectedDesignator] || []) : [];
+
+    // Handler klik fitur Download ZIP
+    const handleDownloadZip = () => {
+        if (!selectedProjectId) return;
+        window.open(`/api/download?id=${selectedProjectId}`, '_blank');
+    };
 
     return (
         <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row font-sans">
@@ -28,19 +60,19 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
                 </div>
                 <nav className="flex flex-col gap-1 px-4 mt-2">
                     <button 
-                        onClick={() => { setActiveTab("dashboard"); setSelectedProjectId(null); }}
+                        onClick={() => { setActiveTab("dashboard"); resetSelection(); }}
                         className={`text-left px-4 py-3 rounded-xl transition-all font-semibold flex items-center gap-3 ${activeTab === "dashboard" ? "bg-sky-50 text-sky-700" : "text-slate-600 hover:bg-slate-50"}`}
                     >
                         <span>🏠</span> Overview
                     </button>
                     <button 
-                        onClick={() => { setActiveTab("file_laporan"); setSelectedProjectId(null); }}
+                        onClick={() => { setActiveTab("file_laporan"); resetSelection(); }}
                         className={`text-left px-4 py-3 rounded-xl transition-all font-semibold flex items-center gap-3 ${activeTab === "file_laporan" ? "bg-sky-50 text-sky-700" : "text-slate-600 hover:bg-slate-50"}`}
                     >
                         <span>📁</span> File Laporan
                     </button>
                     <button 
-                        onClick={() => { setActiveTab("keuangan"); setSelectedProjectId(null); }}
+                        onClick={() => { setActiveTab("keuangan"); resetSelection(); }}
                         className={`text-left px-4 py-3 rounded-xl transition-all font-semibold flex items-center gap-3 ${activeTab === "keuangan" ? "bg-sky-50 text-sky-700" : "text-slate-600 hover:bg-slate-50"}`}
                     >
                         <span>💰</span> Laporan Keuangan <span className="ml-auto text-[10px] bg-sky-100 text-sky-600 px-2 py-0.5 rounded-full">SGERA</span>
@@ -79,7 +111,7 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
                         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                             <h3 className="font-bold text-lg mb-4">Laporan Terbaru Secara Keseluruhan</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {laporan.slice(0,4).map((item) => (
+                                {laporan.slice(0,4).map((item: any) => (
                                     <ReportCard key={item.id} item={item} />
                                 ))}
                             </div>
@@ -88,14 +120,16 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
                     </div>
                 )}
 
-                {/* TAB: FILE LAPORAN (PROJECT FOLDERS) */}
+                {/* TAB: FILE LAPORAN (HIERARCHY FOLDERS) */}
                 {activeTab === "file_laporan" && (
                     <div className="animate-in fade-in zoom-in-95 duration-300 w-full">
-                        {!selectedProjectId ? (
+                        
+                        {/* 1. Tampilan Utama Project */}
+                        {!selectedProjectId && (
                             <>
                                 <header className="mb-8">
                                     <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2">📁 File Laporan (Projects)</h1>
-                                    <p className="text-slate-500">Pilih folder project di bawah ini untuk melihat detail laporkan kerjanya.</p>
+                                    <p className="text-slate-500">Pilih folder project di bawah ini untuk melihat struktur laporannya.</p>
                                 </header>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                                     {projects.map(p => (
@@ -107,37 +141,95 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
                                             <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300 origin-bottom-left">📂</div>
                                             <h3 className="font-bold text-slate-800 text-lg mb-1">{p.project_name}</h3>
                                             <p className="text-sm text-slate-500 line-clamp-1">{p.lokasi || "Lokasi Belum Ditentukan"}</p>
-                                            <div className="mt-4 inline-flex text-xs font-semibold bg-sky-50 text-sky-700 px-3 py-1 rounded-full">Lihat Detail &rarr;</div>
+                                            <div className="mt-4 inline-flex text-xs font-semibold bg-sky-50 text-sky-700 px-3 py-1 rounded-full">Buka Folder &rarr;</div>
                                         </div>
                                     ))}
                                     {projects.length === 0 && <p className="text-slate-500">Belum ada project yang didaftarkan melalui Telegram bot (Menu NEW Project).</p>}
                                 </div>
                             </>
-                        ) : (
+                        )}
+
+                        {/* 2. Tampilan Isi Project -> Kategori Laporan */}
+                        {selectedProjectId && !selectedCategory && (
                             <>
                                 <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
                                     <div>
-                                        <button onClick={() => setSelectedProjectId(null)} className="text-sky-600 font-semibold mb-3 hover:underline">&larr; Kembali ke Folder</button>
+                                        <button onClick={() => setSelectedProjectId(null)} className="text-sky-600 font-semibold mb-3 hover:underline">&larr; Kembali ke Daftar Project</button>
                                         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight mb-2 flex items-center gap-3">
                                             <span>📂</span> {selectedProjectInfo?.project_name}
                                         </h1>
-                                        <p className="text-slate-500 font-medium">{selectedProjectInfo?.lokasi} | {selectedProjectInfo?.nama_mitra}</p>
+                                        <p className="text-slate-500 font-medium">Laporan Dikelompokkan Berdasarkan Modul Kategori</p>
                                     </div>
-                                    <div className="bg-sky-50 rounded-2xl p-4 min-w-[200px] text-center border border-sky-100">
-                                        <p className="text-sky-600 font-bold text-sm uppercase mb-1">Total Laporan Proyek</p>
-                                        <p className="text-3xl font-black text-sky-700">{displayedLaporan.length}</p>
+                                    <div className="flex gap-3">
+                                        <button onClick={handleDownloadZip} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold px-5 py-3 rounded-2xl transition border border-emerald-100 flex items-center gap-2">
+                                            <span>📥</span> Unduh ZIP Terstruktur
+                                        </button>
                                     </div>
                                 </header>
                                 
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {Object.keys(reportsByCategory).map(cat => (
+                                        <div 
+                                            key={cat} 
+                                            onClick={() => setSelectedCategory(cat)}
+                                            className="bg-white p-6 rounded-3xl cursor-pointer hover:-translate-y-1 hover:shadow-lg transition-all duration-300 border border-slate-100 group flex items-center gap-4"
+                                        >
+                                            <div className="text-4xl group-hover:scale-110 transition-transform duration-300">📁</div>
+                                            <div>
+                                                <h3 className="font-bold text-slate-800 text-lg mb-1">{cat}</h3>
+                                                <p className="text-xs text-slate-500 font-medium">{reportsByCategory[cat].length} Laporan Termasuk</p>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {Object.keys(reportsByCategory).length === 0 && (
+                                        <div className="col-span-full py-10 flex text-slate-400 justify-center">Belum ada laporan pada project ini.</div>
+                                    )}
+                                </div>
+                            </>
+                        )}
+
+                        {/* 3. Tampilan Kategori -> Subfolder Designator */}
+                        {selectedProjectId && selectedCategory && !selectedDesignator && (
+                            <>
+                                <header className="mb-8 border-b border-slate-200 pb-6">
+                                    <button onClick={() => setSelectedCategory(null)} className="text-sky-600 font-semibold mb-3 hover:underline">&larr; Kembali ke Folder Project</button>
+                                    <div className="flex items-center gap-3 text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">
+                                        <span>📂 {selectedProjectInfo?.project_name}</span> <span>/</span> <span>📁 {selectedCategory}</span>
+                                    </div>
+                                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pilih Subfolder Designator</h1>
+                                </header>
+                                
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                    {displayedLaporan.map((item) => (
+                                    {Object.keys(reportsByDesignator).map(desig => (
+                                        <div 
+                                            key={desig} 
+                                            onClick={() => setSelectedDesignator(desig)}
+                                            className="bg-slate-50 p-5 rounded-3xl cursor-pointer hover:-translate-y-1 hover:shadow-md transition-all duration-300 border border-slate-200 border-dashed group"
+                                        >
+                                            <div className="text-3xl mb-3 group-hover:scale-110 transition-transform duration-300 origin-bottom-left">📂</div>
+                                            <h3 className="font-bold text-slate-800 text-sm mb-1 leading-tight">{desig}</h3>
+                                            <p className="text-xs text-sky-600 font-semibold">{reportsByDesignator[desig].length} Item Card</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
+
+                        {/* 4. Tampilan Designator -> List Report Card Asli */}
+                        {selectedProjectId && selectedCategory && selectedDesignator && (
+                            <>
+                                <header className="mb-8 border-b border-slate-200 pb-6">
+                                    <button onClick={() => setSelectedDesignator(null)} className="text-sky-600 font-semibold mb-3 hover:underline">&larr; Kembali ke Subfolder Kategori</button>
+                                    <div className="flex items-center gap-3 text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">
+                                        <span>📂 Project</span> <span>/</span> <span>📁 {selectedCategory}</span> <span>/</span> <span>📁 {selectedDesignator}</span>
+                                    </div>
+                                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Detail Laporan Eviden</h1>
+                                </header>
+                                
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                    {reportsInDesignator.map((item: any) => (
                                         <ReportCard key={item.id} item={item} />
                                     ))}
-                                    {displayedLaporan.length === 0 && (
-                                        <div className="col-span-full py-10 flex text-slate-400 justify-center">
-                                            Belum ada laporan spesifik pada project ini.
-                                        </div>
-                                    )}
                                 </div>
                             </>
                         )}
@@ -160,14 +252,13 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
 
 // --- Reusable Component untuk render Card Laporan ---
 function ReportCard({ item }: { item: any }) {
-    // Handling multiple photos properly from JSONB array
     const photos = Array.isArray(item.photo_urls) ? item.photo_urls : (item.photo_url ? [item.photo_url] : []);
     const coverPhoto = photos.length > 0 ? photos[0] : null;
 
     return (
         <div className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group flex flex-col">
             <div className="relative aspect-video w-full bg-slate-100 overflow-hidden mt-1 mx-1 rounded-t-[22px]">
-                {coverPhoto ? (
+                {coverPhoto && typeof coverPhoto === 'string' ? (
                     <>
                         <img
                             src={coverPhoto}
@@ -176,7 +267,7 @@ function ReportCard({ item }: { item: any }) {
                         />
                         {photos.length > 1 && (
                             <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 flex items-center gap-1 rounded-full">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 {photos.length}
                             </div>
                         )}
