@@ -27,7 +27,11 @@ BUTTON INLINE KEYBOARD
 		ii. Laporan progres
 			=>Persiapan : ❌
 				a. Aanwijzing : ✅
+					- DONE
+					- NOK
 				b. Perijinan : ❌
+					- DONE
+					- NOK
 
 			=>Material Delivery : ❌
 				a. Material : ❌

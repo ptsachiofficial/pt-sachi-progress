@@ -34,16 +34,23 @@ const MAIN_MENU = Markup.inlineKeyboard([
 // --- COMMANDS ---
 bot.start(async (ctx) => {
     await clearSession(ctx.from.id);
-    const welcomeText = `*Selamat Datang di Sistem Pelaporan PT Sachi* 🏢\n\n` +
-        `Bot ini akan membantu Anda melaporkan bukti kerja lapangan atau manajemen material dengan cepat.\n\n` +
-        `Pilih menu di bawah ini untuk memulai proses interaktif:`;
+    const welcomeText = `🚀 *SELAMAT DATANG DI SISTEM PELAPORAN PT SACHI* 🚀\n\n` +
+        `Halo! Bot ini dirancang khusus untuk mempermudah Anda dalam melaporkan progres pekerjaan lapangan serta mendata keluar-masuk material secara *real-time*.\n\n` +
+        `📖 *TATA CARA PENGGUNAAN:*\n` +
+        `1️⃣ *NEW Project* 🏢\n` +
+        `   Gunakan menu ini jika Anda ingin mendaftarkan proyek baru. Siapkan data seperti _Nama Mitra_, _No SPMK_, _Lokasi_, dan _Koordinat_.\n` +
+        `2️⃣ *Laporan project* 📝\n` +
+        `   Gunakan menu ini untuk melaporkan progres harian dari proyek yang sudah terdaftar. Anda dapat memilih tahapan pekerjaan (seperti _Persiapan_, _Instalasi_, dll) dan mengunggah foto bukti beserta jumlah volume.\n` +
+        `3️⃣ *Pembatalan* ❌\n` +
+        `   Kapan saja Anda merasa salah ketik atau ingin mengulang, cukup ketik perintah /batal atau /cancel untuk mereset seluruh proses yang sedang Anda lakukan.\n\n` +
+        `✨ *Pilih menu di bawah ini untuk memulai:*`;
 
     await ctx.reply(welcomeText, { parse_mode: 'Markdown', ...MAIN_MENU });
 });
 
-bot.command('cancel', async (ctx) => {
+bot.command(['cancel', 'batal'], async (ctx) => {
     await clearSession(ctx.from.id);
-    await ctx.reply("❌ Proses dibatalkan. Ketik /start untuk kembali ke menu utama.");
+    await ctx.reply("❌ *Semua proses telah dibatalkan!*\n\nData sesi Anda sudah dibersihkan. Silakan ketik /start untuk kembali ke menu utama.", { parse_mode: 'Markdown' });
 });
 
 // --- CALLBACK QUERIES ---
@@ -210,6 +217,17 @@ bot.on("callback_query", async (ctx) => {
         const idx = parseInt(parts[2]);
         const taskName = session.data.tasks[idx];
 
+        if (session.data.category === "Persiapan") {
+            await updateSession(telegram_id, 'LAP_WAIT_PERSIAPAN_STAT', { ...session.data, task: taskName });
+            return ctx.editMessageText(
+                `Kategori: *Persiapan*\nTask: *${taskName}*\n\nPilih status penyelesaian:`,
+                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                    [Markup.button.callback("✅ DONE", "PERSIAPAN_STAT_DONE")],
+                    [Markup.button.callback("❌ NOK", "PERSIAPAN_STAT_NOK")]
+                ])}
+            ).catch(() => ctx.reply(`Pilih status penyelesaian untuk ${taskName}:`));
+        }
+
         await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, task: taskName });
 
         if (session.data.category === "Material Delivery") {
@@ -221,6 +239,38 @@ bot.on("callback_query", async (ctx) => {
             `Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan untuk hari ini berupa angka (contoh: 50 atau 1):`,
             { parse_mode: 'Markdown' }
         ).catch(() => ctx.reply(`Task: *${taskName}*\n✏️ Masukkan *Volume/Jumlah* kegiatan untuk hari ini berupa angka:`));
+    }
+
+    if (data.startsWith("PERSIAPAN_STAT_")) {
+        const stat = data.replace("PERSIAPAN_STAT_", ""); // DONE or NOK
+        const session = await getSession(telegram_id);
+        const sd = session.data;
+        if(!sd.project_id) return ctx.reply("Sesi hilang. Ketik /start");
+        
+        ctx.editMessageText(`⏳ Menyimpan status ${stat} untuk ${sd.task}...`);
+
+        const { error } = await supabase.from('laporan_kerja').insert({
+            telegram_id: telegram_id,
+            project_id: sd.project_id,
+            task_category: sd.category,
+            task_name: sd.task,
+            quantity: 1,
+            notes: `Status: ${stat}`,
+            photo_urls: [],
+            status: stat === "DONE" ? "submitted" : "nok"
+        });
+
+        if (error) {
+            console.error(error);
+            return ctx.reply(`❌ Gagal menyimpan laporan ke database.\nErr: ${error.message}`);
+        }
+
+        await clearSession(telegram_id);
+        const finishBtns = [
+            [Markup.button.callback("📑 Kembali ke Laporan Project", `LAPPROG_${sd.project_id}`)],
+            [Markup.button.callback("🏠 Menu Utama", `MENU_MAIN`)]
+        ];
+        return ctx.reply(`✅ *Status ${sd.task} berhasil disimpan sebagai ${stat}!*`, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(finishBtns) });
     }
 
     if (data === "FINISH_PHOTO_UPLOAD") {
