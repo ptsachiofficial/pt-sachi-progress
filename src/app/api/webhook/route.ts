@@ -138,21 +138,45 @@ bot.on("callback_query", async (ctx) => {
         if (!p) return ctx.reply("⚠️ *Sesi Anda telah kedaluwarsa.*\n\nSilakan ketik /start untuk mengulang proses dari awal. 🔄");
         
         ctx.editMessageText("⏳ *Menyimpan Project Baru...*\nMohon tunggu sebentar, sistem sedang memproses data Anda.");
-        const { error } = await supabase.from('master_project').insert({
+        const { data: insertedProject, error } = await supabase.from('master_project').insert({
             nama_mitra: p.mitra,
             nama_user: p.user,
             no_spmk: p.spmk,
             project_name: p.nama_project,
             lokasi: p.lokasi,
             kordinat: p.kordinat
-        });
+        }).select().single();
 
-        if (error) {
+        if (error || !insertedProject) {
             console.error(error);
             return ctx.reply("❌ *Gagal Menyimpan Project!*\n\nTerjadi kesalahan fatal pada sistem. Silakan coba lagi beberapa saat.");
         }
+        
+        // --- SEGERA KIRIM KE CHANNEL ---
+        if (MAIN_CHANNEL_ID) {
+            try {
+                const msg = await bot.telegram.sendMessage(
+                    MAIN_CHANNEL_ID,
+                    `🏢 *PROJECT BARU*: ${insertedProject.project_name || '-'}\n📄 *SPMK*: ${insertedProject.no_spmk || '-'}\n📍 *Lokasi*: ${insertedProject.lokasi || '-'}\n\n_Seluruh dokumentasi progres proyek ini akan dikumpulkan di bawah thread pesan ini._`,
+                    { parse_mode: 'Markdown' }
+                );
+                
+                let discussion_chat_id = null;
+                try {
+                    const chatInfo = await bot.telegram.getChat(MAIN_CHANNEL_ID) as any;
+                    if (chatInfo.linked_chat_id) discussion_chat_id = chatInfo.linked_chat_id;
+                } catch(e) {}
+                
+                await supabase.from('master_project').update({ 
+                    main_message_id: msg.message_id, 
+                    discussion_chat_id: discussion_chat_id 
+                }).eq('id', insertedProject.id);
+            } catch(e) { console.error("Broadcast new project failed:", e); }
+        }
+        // ---------------------------------
+
         await clearSession(telegram_id);
-        return ctx.reply("✅ *Project Berhasil Disimpan!*\n\nData proyek Anda telah tercatat dengan aman di database. Silakan ketik /start untuk masuk ke menu pelaporan kerja. 🚀");
+        return ctx.reply("✅ *Project Berhasil Disimpan & Diumumkan!*\n\nData proyek Anda telah tercatat dengan aman di database dan diteruskan ke Channel. Silakan ketik /start untuk menu utama. 🚀");
     }
 
     if (data === "CONFIRM_CANCEL_PROJ") {
