@@ -784,31 +784,23 @@ async function updateCategoryProgress(projectId: string, category: string) {
                 main_msg_id = msg.message_id;
             }
 
-            // --- SYNC GROUP MESSAGE ID (Manual Forward + Clean Up) ---
-            if (discussion_chat_id) {
-                try {
-                    // Hapus jejak lama di grup agar tidak menumpuk
-                    if (p.group_message_id) {
-                        try { await bot.telegram.deleteMessage(discussion_chat_id, Number(p.group_message_id)); } catch(e) {}
-                    }
+            // Update main_message_id di DB agar Webhook bisa mencocokkan forward-an otomatis
+            await supabase.from('master_project').update({ 
+                main_message_id: main_msg_id, 
+                group_message_id: null // Reset agar kita benar-benar nunggu yang baru
+            }).eq('id', projectId);
 
-                    // Forward baru untuk dapat ID yang fresh dan valid
-                    const fwd = await bot.telegram.forwardMessage(discussion_chat_id, MAIN_CHANNEL_ID, main_msg_id);
-                    p.group_message_id = fwd.message_id;
-                    
-                    await supabase.from('master_project').update({ 
-                        main_message_id: main_msg_id, 
-                        group_message_id: p.group_message_id,
-                        discussion_chat_id: discussion_chat_id
-                    }).eq('id', projectId);
-                } catch(e) {
-                    console.error("Group re-sync failed:", e);
-                    await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
+            // --- Polling: Tunggu Webhook menangkap forward otomatis (Max 10 detik) ---
+            for (let i = 0; i < 10; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                const { data: pCheck } = await supabase.from('master_project').select('group_message_id, discussion_chat_id').eq('id', projectId).single();
+                if (pCheck?.group_message_id) {
+                    p.group_message_id = pCheck.group_message_id;
+                    discussion_chat_id = pCheck.discussion_chat_id || discussion_chat_id;
+                    break;
                 }
-            } else {
-                await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
             }
-        } else {
+        } else { else {
             // Jika bukan refresh total, pastikan kita punya ID terbaru dari DB
              const { data: pCheck } = await supabase.from('master_project').select('group_message_id, discussion_chat_id').eq('id', projectId).single();
              if (pCheck) {
@@ -1049,7 +1041,7 @@ export async function POST(req: NextRequest) {
 
         // --- Logic: Tangkap pesan yang diforward otomatis (Linked Channel -> Discussion Group) ---
         const m = body.message || body.channel_post || body.edited_message;
-        const channelIdStr = MAIN_CHANNEL_ID.toString().trim();
+        const channelIdStr = MAIN_CHANNEL_ID.toString().replace(/"/g, '').trim();
         const forwardIdStr = m?.forward_from_chat?.id?.toString().trim();
         const isFromChannel = forwardIdStr === channelIdStr;
         const isAutoForward = m?.is_automatic_forward === true;
@@ -1059,29 +1051,36 @@ export async function POST(req: NextRequest) {
             const groupMsgId = m.message_id;
             const discChatId = m.chat?.id;
 
-            // Attempt 1: Match by main_message_id
-            let { data: proj } = await supabase.from('master_project').select('id').eq('main_message_id', channelMsgId).single();
-            
-            // Attempt 2: Fallback ke SPMK jika ID match gagal (mungkin karena delay insert)
-            if (!proj && m.text) {
-                const lines = m.text.split('\n');
-                const spmkLine = lines.find((l: string) => l.includes('SPMK:'));
-                if (spmkLine) {
-                    const spmk = spmkLine.split(':')[1]?.trim();
+            // Retry lookup up to 3 times to handle DB commit race conditions
+            let projID = null;
+            for (let attempt = 0; attempt < 3; attempt++) {
+                let { data: proj } = await supabase.from('master_project').select('id').eq('main_message_id', channelMsgId).single();
+                if (proj) {
+                    projID = proj.id;
+                    break;
+                }
+                // Fallback SPMK
+                if (m.text) {
+                    const spmkLine = m.text.split('\n').find((l: string) => l.includes('SPMK:'));
+                    const spmk = spmkLine?.split(':')[1]?.trim();
                     if (spmk) {
                         const { data: projBySpmk } = await supabase.from('master_project').select('id').eq('no_spmk', spmk).order('created_at', { ascending: false }).limit(1).single();
-                        proj = projBySpmk;
+                        if (projBySpmk) {
+                            projID = projBySpmk.id;
+                            break;
+                        }
                     }
                 }
+                if (attempt < 2) await new Promise(r => setTimeout(r, 800));
             }
 
-            if (proj) {
+            if (projID) {
                 await supabase.from('master_project')
                     .update({ 
                         group_message_id: groupMsgId,
                         discussion_chat_id: discChatId 
                     })
-                    .eq('id', proj.id);
+                    .eq('id', projID);
             }
         }
 
