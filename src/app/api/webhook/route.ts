@@ -781,6 +781,27 @@ async function updateCategoryProgress(projectId: string, category: string) {
 
         // --- Logic: Refresh SEMUA kategori jika REFRESH_ONLY ---
         if (category === "REFRESH_ONLY") {
+            // Self-Repair: Migrasi data lama yang masih kategori 'Instalasi' ke nama spesifik dari laporan_kerja
+            const { data: oldEvs } = await supabase.from('evidences')
+                .select('id, category, laporan_id')
+                .eq('project_id', projectId)
+                .or('category.eq.Instalasi,category.eq.Persiapan,category.eq.Finish Instalation,category.eq.Closing');
+
+            if (oldEvs && oldEvs.length > 0) {
+                for (const ev of oldEvs) {
+                    const { data: lap } = await supabase.from('laporan_kerja').select('task_name').eq('id', ev.laporan_id).single();
+                    if (lap && lap.task_name) {
+                        // Bersihkan task_name jika ada (parentheses) untuk designator
+                        let cleanName = lap.task_name;
+                        if (cleanName.includes('(')) {
+                            // Cukup ambil yang di dalam kurung atau biarkan lengkap
+                             cleanName = cleanName.replace(/.*\((.*)\)/, '$1').trim();
+                        }
+                        await supabase.from('evidences').update({ category: cleanName }).eq('id', ev.id);
+                    }
+                }
+            }
+
             const { data: allEvs } = await supabase.from('evidences').select('category').eq('project_id', projectId);
             const uniqueCats = Array.from(new Set((allEvs || []).map(x => x.category)));
             for (const cat of uniqueCats) {
