@@ -475,8 +475,8 @@ bot.on("callback_query", async (ctx) => {
 
         // Insert ke tabel evidences
         if (laporanData && photos.length > 0) {
-            // Gunakan nama Task/Designator spesifik sebagai kategori agar di group diskusi ter-group per task
-            const specificCategory = sd.task + (sd.designator ? ` - ${sd.designator}` : '');
+            // Gunakan Designator sebagai kategori utama jika ada, agar grouping lebih rapi sesuai CSV
+            const specificCategory = sd.designator || sd.task;
             
             const evData = photos.map((p: any) => ({
                 laporan_id: laporanData.id,
