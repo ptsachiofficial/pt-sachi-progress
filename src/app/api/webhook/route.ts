@@ -765,31 +765,38 @@ async function updateCategoryProgress(projectId: string, category: string) {
         // 2. Jika project baru/lama (belum ter-forward) atau dipaksa refresh rincian utama
         // 2. Jika project baru/lama (belum ter-forward) atau dipaksa refresh rincian utama
         if (!main_msg_id || (!discussion_chat_id && p.main_message_id) || category === "REFRESH_ONLY") {
+            const statusMsg = await bot.telegram.sendMessage(discussion_chat_id || MAIN_CHANNEL_ID, "⏳ _Sedang memperbarui rincian project dan mensinkronkan komentar..._", { parse_mode: 'Markdown' });
+
             if (p.main_message_id) {
                 try { 
-                    await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, p.main_message_id); 
-                } catch(e) { 
-                    console.error("Gagal hapus pesan lama:", e); 
-                    // Jika gagal hapus, mungkin bot bukan admin di channel
-                }
+                    await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, Number(p.main_message_id)); 
+                } catch(e) { console.error("Gagal hapus pesan lama:", e); }
             }
             
             const msgText = `🏢 *PROJECT*: ${p.project_name || '-'}\n📄 *SPMK*: ${p.no_spmk || '-'}\n📍 *Lokasi*: ${p.lokasi || '-'}\n\n_Seluruh dokumentasi progres akan kami kumpulkan di bawah pesan ini._`;
             const msg = await bot.telegram.sendMessage(MAIN_CHANNEL_ID, msgText, { parse_mode: 'Markdown' });
             
             main_msg_id = msg.message_id;
-            // Penting: Kosongkan group_message_id dulu agar tidak pakai yang lama
+            // Penting: Reset group_message_id di DB agar kita benar-benar nunggu yang baru
             await supabase.from('master_project').update({ main_message_id: main_msg_id, group_message_id: null }).eq('id', projectId);
             
             // --- Polling: Tunggu Webhook mengupdate group_message_id ---
-            for (let i = 0; i < 10; i++) {
+            let found = false;
+            for (let i = 0; i < 12; i++) {
                 await new Promise(r => setTimeout(r, 1000));
                 const { data: pCheck } = await supabase.from('master_project').select('group_message_id, discussion_chat_id').eq('id', projectId).single();
                 if (pCheck?.group_message_id) {
                     p.group_message_id = pCheck.group_message_id;
                     discussion_chat_id = pCheck.discussion_chat_id || discussion_chat_id;
+                    found = true;
                     break;
                 }
+            }
+
+            try { await bot.telegram.deleteMessage(statusMsg.chat.id, statusMsg.message_id); } catch(e) {}
+            
+            if (!found) {
+                console.warn(`Sync Warning: Group Message ID tidak ditemukan setelah 12 detik untuk project ${projectId}`);
             }
         } else {
             // Jika bukan refresh total, pastikan kita punya ID terbaru dari DB
