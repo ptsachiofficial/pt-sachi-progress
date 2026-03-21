@@ -822,106 +822,140 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
     const { data: p } = await supabase.from('master_project').select('*').eq('id', projectId).single();
     const { data: evidences } = await supabase.from('evidences').select('*').eq('project_id', projectId);
     
-    const grouped = lodash.groupBy(evidences || [], 'category');
+    if (!p) throw new Error("Project not found");
+
     const sections: any[] = [];
-    
+    const grouped = lodash.groupBy(evidences || [], 'category');
+
     for (const category of Object.keys(grouped)) {
         const catEvidences = grouped[category];
         const chunks = lodash.chunk(catEvidences, 4);
-        
-        for (const [pageIdx, chunk] of chunks.entries()) {
+
+        for (const [chunkIdx, chunk] of chunks.entries()) {
             const pageChildren: any[] = [];
-            
-            const infoTable = new Table({
+
+            // 1. JUDUL (Centered, Underlined, Bold)
+            pageChildren.push(new Paragraph({
+                children: [
+                    new TextRun({
+                        text: "JUDUL",
+                        bold: true,
+                        underline: { type: UnderlineType.SINGLE },
+                        size: 28,
+                    }),
+                ],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 200 },
+            }));
+
+            // 2. Info Table (With Top & Bottom borders)
+            const headerTable = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
-                borders: { top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, insideVertical: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" } },
+                borders: {
+                    top: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
+                    bottom: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
+                    left: { style: BorderStyle.NONE },
+                    right: { style: BorderStyle.NONE },
+                    insideHorizontal: { style: BorderStyle.NONE },
+                    insideVertical: { style: BorderStyle.NONE },
+                },
                 rows: [
                     new TableRow({ children: [
                         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Proyek", bold: true })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
-                        new TableCell({ children: [new Paragraph({ text: `: ${p?.project_name || '-'}` })] })
+                        new TableCell({ children: [new Paragraph(`: ${p.project_name || '-'}`)] }),
                     ]}),
                     new TableRow({ children: [
                         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "No Kontrak", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
+                        new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
                     ]}),
                     new TableRow({ children: [
                         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Nomor PO", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
+                        new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
                     ]}),
                     new TableRow({ children: [
                         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Lokasi", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph({ text: `: ${p?.lokasi || '-'}` })] })
+                        new TableCell({ children: [new Paragraph(`: ${p.lokasi || '-'}`)] }),
                     ]}),
                     new TableRow({ children: [
                         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Site Operation", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
+                        new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
                     ]}),
                     new TableRow({ children: [
                         new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Pelaksana", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph({ text: `: ${p?.nama_mitra || '-'}` })] })
-                    ]})
-                ]
+                        new TableCell({ children: [new Paragraph(`: ${p.nama_mitra || '-'}`)] }),
+                    ]}),
+                ],
             });
-            
-            pageChildren.push(infoTable);
-            pageChildren.push(new Paragraph({ text: "" }));
-            
+            pageChildren.push(headerTable);
+            pageChildren.push(new Paragraph({ text: "", spacing: { after: 300 } }));
+
+            // 3. Category Title
             pageChildren.push(new Paragraph({
-                children: [new TextRun({ text: category.toUpperCase(), bold: true, size: 32 })],
-                alignment: AlignmentType.CENTER
+                children: [new TextRun({ text: category.toUpperCase(), bold: true, size: 24 })],
+                alignment: AlignmentType.CENTER,
+                spacing: { after: 200 }
             }));
-            pageChildren.push(new Paragraph({ text: "" }));
-            
-            const imageRuns = [];
+
+            // 4. Evidence Photo Grid (2x2 Portrait Boxes)
+            const imagesInChunk: any[] = [];
             for (const ev of chunk) {
-                if (!ev.r2_url) { imageRuns.push(new Paragraph("No Image")); continue; }
-                try {
-                    const response = await fetch(ev.r2_url);
-                    const arrayBuffer = await response.arrayBuffer();
-                    const buffer = Buffer.from(arrayBuffer);
-                    imageRuns.push(new ImageRun({
-                        data: buffer,
-                        transformation: { width: 335, height: 250 },
-                        type: 'jpg'
-                    }));
-                } catch(e) {
-                    imageRuns.push(new Paragraph("Failed Image"));
-                }
+                if (ev.r2_url) {
+                    try {
+                        const res = await fetch(ev.r2_url);
+                        const buffer = Buffer.from(await res.arrayBuffer());
+                        imagesInChunk.push(new ImageRun({
+                            data: buffer,
+                            transformation: { width: 280, height: 380 }, // Taller boxes
+                            type: 'jpg'
+                        }));
+                    } catch(e) { imagesInChunk.push(null); }
+                } else { imagesInChunk.push(null); }
             }
-            
-            const tableRows = [];
-            if (imageRuns.length > 0) {
-                 const cells = [];
-                 cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[0] as any], alignment: AlignmentType.CENTER })], margins: { top: 0, bottom: 0, left: 0, right: 0 } }));
-                 if (imageRuns[1]) cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[1] as any], alignment: AlignmentType.CENTER })], margins: { top: 0, bottom: 0, left: 0, right: 0 } }));
-                 else cells.push(new TableCell({ children: [new Paragraph("")] }));
-                 tableRows.push(new TableRow({ children: cells }));
-            }
-            if (imageRuns.length > 2) {
-                 const cells = [];
-                 cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[2] as any], alignment: AlignmentType.CENTER })], margins: { top: 0, bottom: 0, left: 0, right: 0 } }));
-                 if (imageRuns[3]) cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[3] as any], alignment: AlignmentType.CENTER })], margins: { top: 0, bottom: 0, left: 0, right: 0 } }));
-                 else cells.push(new TableCell({ children: [new Paragraph("")] }));
-                 tableRows.push(new TableRow({ children: cells }));
-            }
-            
-            if (tableRows.length > 0) {
-                 pageChildren.push(new Table({
-                     width: { size: 100, type: WidthType.PERCENTAGE },
-                     rows: tableRows
-                 }));
-            }
-            
-            sections.push({ properties: {}, children: pageChildren });
+
+            const createPhotoCell = (imgRun: any) => new TableCell({
+                children: [
+                    new Paragraph({
+                        children: imgRun ? [imgRun] : [new TextRun({ text: "LETAK FOTO", size: 16 })],
+                        alignment: AlignmentType.CENTER,
+                    })
+                ],
+                width: { size: 50, type: WidthType.PERCENTAGE },
+                borders: {
+                    top: { style: BorderStyle.SINGLE, size: 2 },
+                    bottom: { style: BorderStyle.SINGLE, size: 2 },
+                    left: { style: BorderStyle.SINGLE, size: 2 },
+                    right: { style: BorderStyle.SINGLE, size: 2 },
+                },
+                margins: { top: 100, bottom: 100, left: 100, right: 100 },
+                verticalAlign: VerticalAlign.CENTER
+            });
+
+            const photoRows = [
+                new TableRow({ children: [createPhotoCell(imagesInChunk[0]), createPhotoCell(imagesInChunk[1])] }),
+                new TableRow({ children: [
+                    new TableCell({ children: [new Paragraph("")], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }), 
+                    new TableCell({ children: [new Paragraph("")], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })
+                ] }), // Spacer
+                new TableRow({ children: [createPhotoCell(imagesInChunk[2]), createPhotoCell(imagesInChunk[3])] }),
+            ];
+
+            const photoTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: { insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }, top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                rows: photoRows
+            });
+
+            pageChildren.push(photoTable);
+            sections.push({ children: pageChildren, properties: { type: SectionType.NEXT_PAGE } });
         }
     }
-    
+
     if (sections.length === 0) {
-         sections.push({ properties: {}, children: [new Paragraph("Belum ada evidens foto.")] });
+        sections.push({ children: [new Paragraph("Belum ada evidens foto.")] });
     }
-    
+
     const doc = new Document({ sections });
-    return Packer.toBuffer(doc);
+    return await Packer.toBuffer(doc);
 }
 
 // Webhook Router handling
