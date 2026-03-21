@@ -2,8 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { Telegraf, Markup } from "telegraf";
 import { supabase } from "@/lib/supabase";
 import { uploadToR2 } from "@/lib/r2";
+import lodash from 'lodash';
+import { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle } from 'docx';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || "");
+const MAIN_CHANNEL_ID = process.env.MAIN_CHANNEL_ID || "";
 
 // --- Session Management ---
 async function getSession(telegram_id: number) {
@@ -414,21 +417,38 @@ bot.on("callback_query", async (ctx) => {
 
         ctx.editMessageText("⏳ *Mengunggah Laporan...*\nMenyatukan data dan foto ke dalam sistem pusat PT Sachi. Mohon tunggu sebentar... ☁️", { parse_mode: 'Markdown' });
 
-        const { error } = await supabase.from('laporan_kerja').insert({
+        const photoUrls = photos.map((p: any) => p.r2_url);
+
+        const { data: laporanData, error } = await supabase.from('laporan_kerja').insert({
             telegram_id: telegram_id,
             project_id: sd.project_id,
             boq_id: sd.boq_id,
             task_category: sd.category,
             task_name: sd.task + (sd.designator ? ` (${sd.designator})` : ''),
             quantity: vol,
-            notes: "Dilaporkan via Bot", // Bisa dikembangkan klo butuh notes manual
-            photo_urls: photos,
+            notes: "Dilaporkan via Bot",
+            photo_urls: photoUrls,
             status: "submitted"
-        });
+        }).select().single();
 
         if (error) {
             console.error(error);
             return ctx.reply(`❌ *Gagal Menyimpan Data!*\n\n${error.message}`);
+        }
+
+        // Insert ke tabel evidences
+        if (laporanData && photos.length > 0) {
+            const evData = photos.map((p: any) => ({
+                laporan_id: laporanData.id,
+                project_id: sd.project_id,
+                category: sd.category,
+                telegram_file_id: p.file_id,
+                r2_url: p.r2_url
+            }));
+            await supabase.from('evidences').insert(evData);
+            
+            // Trigger update MediaGroup ke Discussion Group
+            await updateCategoryProgress(sd.project_id, sd.category);
         }
 
         await clearSession(telegram_id);
@@ -468,8 +488,25 @@ bot.on("callback_query", async (ctx) => {
 
         return ctx.editMessageText(statusText, { 
             parse_mode: 'Markdown', 
-            ...Markup.inlineKeyboard([[Markup.button.callback("🔙 Kembali", `SELPROJ_${projId}`)]]) 
+            ...Markup.inlineKeyboard([
+               [Markup.button.callback("📄 Generate Report DOCX", `EXPORTDOC_${projId}`)],
+               [Markup.button.callback("🔙 Kembali", `SELPROJ_${projId}`)]
+            ]) 
         }).catch(()=> ctx.reply(statusText, { parse_mode:'Markdown'}));
+    }
+
+    if (data.startsWith("EXPORTDOC_")) {
+        const projId = data.replace("EXPORTDOC_", "");
+        ctx.reply("⏳ *Sedang me-render dokumen DOCX...* Mohon tunggu beberapa saat karena bot perlu menarik foto-foto evidens.", { parse_mode: 'Markdown' });
+        
+        try {
+            const buffer = await generateDocxReport(projId);
+            await ctx.telegram.sendDocument(ctx.chat!.id, { source: buffer, filename: `Report_PT_SACHI_${projId.slice(0,5)}.docx` }, { caption: "✅ *Report DOCX Berhasil Dibuat!*", parse_mode: 'Markdown' });
+        } catch (e: any) {
+            console.error(e);
+            ctx.reply(`❌ *Gagal membuat DOCX:*\n${e.message}`, { parse_mode: 'Markdown' });
+        }
+        return;
     }
 });
 
@@ -629,7 +666,7 @@ bot.on('photo', async (ctx) => {
         }
 
         const photos = freshSession.data.photos || [];
-        photos.push(photoUrl);
+        photos.push({ file_id: photo.file_id, r2_url: photoUrl });
         await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...freshSession.data, photos });
 
         const vol = freshSession.data.quantity || 1;
@@ -662,6 +699,176 @@ bot.on('photo', async (ctx) => {
         await ctx.reply(`❌ *Terjadi kesalahan* saat mengunggah foto.\n\n${e.message}`, { parse_mode: "Markdown" });
     }
 });
+
+// --- LOGIC FUNCTIONS ---
+async function updateCategoryProgress(projectId: string, category: string) {
+    if (!MAIN_CHANNEL_ID) return;
+    try {
+        const { data: p } = await supabase.from('master_project').select('*').eq('id', projectId).single();
+        if (!p) return;
+        
+        let main_msg_id = p.main_message_id;
+        let discussion_chat_id = p.discussion_chat_id;
+        let category_msgs = p.category_messages || {};
+
+        if (!main_msg_id) {
+            const msg = await bot.telegram.sendMessage(
+                MAIN_CHANNEL_ID,
+                `🏢 *PROJECT*: ${p.project_name || '-'}\n📄 *SPMK*: ${p.no_spmk || '-'}\n📍 *Lokasi*: ${p.lokasi || '-'}\n\n_Seluruh dokumentasi progres akan kami kumpulkan di bawah pesan ini._`,
+                { parse_mode: 'Markdown' }
+            );
+            main_msg_id = msg.message_id;
+            try {
+                const chatInfo = await bot.telegram.getChat(MAIN_CHANNEL_ID) as any;
+                if (chatInfo.linked_chat_id) discussion_chat_id = chatInfo.linked_chat_id;
+            } catch(e) { console.error("Linked chat info error:", e); }
+            
+            await supabase.from('master_project').update({ main_message_id: main_msg_id, discussion_chat_id: discussion_chat_id }).eq('id', projectId);
+        }
+
+        if (!discussion_chat_id) return;
+
+        const oldMsgIds = category_msgs[category] || [];
+        for (const msgId of oldMsgIds) {
+            try { await bot.telegram.deleteMessage(discussion_chat_id, msgId); } catch(e) {}
+        }
+
+        const { data: evidences } = await supabase.from('evidences').select('*').eq('project_id', projectId).eq('category', category);
+        if (!evidences || evidences.length === 0) return;
+
+        const chunks = lodash.chunk(evidences, 10);
+        let newMessageIds: number[] = [];
+        
+        for (const [idx, chunk] of chunks.entries()) {
+            const mediaGroup = chunk.map((ev: any, i: number) => ({
+                type: 'photo' as const,
+                media: ev.telegram_file_id,
+                caption: (idx === 0 && i === 0) ? `📁 *Kategori:* ${category}\n_Total Eviden:_ ${evidences.length} Foto` : undefined,
+                parse_mode: 'Markdown' as const
+            }));
+            
+            try {
+                const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id, mediaGroup);
+                msgs.forEach((m: any) => newMessageIds.push(m.message_id));
+            } catch(e) {
+                console.error("Gagal kirim MediaGroup ke discussion", e);
+            }
+        }
+
+        if (newMessageIds.length > 0) {
+            category_msgs[category] = newMessageIds;
+            await supabase.from('master_project').update({ category_messages: category_msgs }).eq('id', projectId);
+        }
+    } catch(e) {
+        console.error("updateCategoryProgress error:", e);
+    }
+}
+
+async function generateDocxReport(projectId: string): Promise<Buffer> {
+    const { data: p } = await supabase.from('master_project').select('*').eq('id', projectId).single();
+    const { data: evidences } = await supabase.from('evidences').select('*').eq('project_id', projectId);
+    
+    const grouped = lodash.groupBy(evidences || [], 'category');
+    const sections: any[] = [];
+    
+    for (const category of Object.keys(grouped)) {
+        const catEvidences = grouped[category];
+        const chunks = lodash.chunk(catEvidences, 4);
+        
+        for (const [pageIdx, chunk] of chunks.entries()) {
+            const pageChildren: any[] = [];
+            
+            const infoTable = new Table({
+                width: { size: 100, type: WidthType.PERCENTAGE },
+                borders: { top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, insideVertical: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" } },
+                rows: [
+                    new TableRow({ children: [
+                        new TableCell({ children: [new Paragraph({ text: "Proyek", bold: true })], width: { size: 25, type: WidthType.PERCENTAGE } }),
+                        new TableCell({ children: [new Paragraph({ text: `: ${p?.project_name || '-'}` })] })
+                    ]}),
+                    new TableRow({ children: [
+                        new TableCell({ children: [new Paragraph({ text: "No Kontrak", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
+                    ]}),
+                    new TableRow({ children: [
+                        new TableCell({ children: [new Paragraph({ text: "Nomor PO", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
+                    ]}),
+                    new TableRow({ children: [
+                        new TableCell({ children: [new Paragraph({ text: "Lokasi", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ text: `: ${p?.lokasi || '-'}` })] })
+                    ]}),
+                    new TableRow({ children: [
+                        new TableCell({ children: [new Paragraph({ text: "Site Operation", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
+                    ]}),
+                    new TableRow({ children: [
+                        new TableCell({ children: [new Paragraph({ text: "Pelaksana", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ text: `: ${p?.nama_mitra || '-'}` })] })
+                    ]})
+                ]
+            });
+            
+            pageChildren.push(infoTable);
+            pageChildren.push(new Paragraph({ text: "" }));
+            
+            pageChildren.push(new Paragraph({
+                children: [new TextRun({ text: category.toUpperCase(), bold: true, size: 32 })],
+                alignment: AlignmentType.CENTER
+            }));
+            pageChildren.push(new Paragraph({ text: "" }));
+            
+            const imageRuns = [];
+            for (const ev of chunk) {
+                if (!ev.r2_url) { imageRuns.push(new Paragraph("No Image")); continue; }
+                try {
+                    const response = await fetch(ev.r2_url);
+                    const arrayBuffer = await response.arrayBuffer();
+                    const buffer = Buffer.from(arrayBuffer);
+                    imageRuns.push(new ImageRun({
+                        data: buffer,
+                        transformation: { width: 300, height: 225 },
+                        type: 'jpg'
+                    }));
+                } catch(e) {
+                    imageRuns.push(new Paragraph("Failed Image"));
+                }
+            }
+            
+            const tableRows = [];
+            if (imageRuns.length > 0) {
+                 const cells = [];
+                 cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[0] as any], alignment: AlignmentType.CENTER })], margins: { top: 100, bottom: 100, left: 100, right: 100 } }));
+                 if (imageRuns[1]) cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[1] as any], alignment: AlignmentType.CENTER })], margins: { top: 100, bottom: 100, left: 100, right: 100 } }));
+                 else cells.push(new TableCell({ children: [new Paragraph("")] }));
+                 tableRows.push(new TableRow({ children: cells }));
+            }
+            if (imageRuns.length > 2) {
+                 const cells = [];
+                 cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[2] as any], alignment: AlignmentType.CENTER })], margins: { top: 100, bottom: 100, left: 100, right: 100 } }));
+                 if (imageRuns[3]) cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[3] as any], alignment: AlignmentType.CENTER })], margins: { top: 100, bottom: 100, left: 100, right: 100 } }));
+                 else cells.push(new TableCell({ children: [new Paragraph("")] }));
+                 tableRows.push(new TableRow({ children: cells }));
+            }
+            
+            if (tableRows.length > 0) {
+                 pageChildren.push(new Table({
+                     width: { size: 100, type: WidthType.PERCENTAGE },
+                     rows: tableRows
+                 }));
+            }
+            
+            sections.push({ properties: {}, children: pageChildren });
+        }
+    }
+    
+    if (sections.length === 0) {
+         sections.push({ properties: {}, children: [new Paragraph("Belum ada evidens foto.")] });
+    }
+    
+    const doc = new Document({ sections });
+    return Packer.toBuffer(doc);
+}
 
 // Webhook Router handling
 export async function POST(req: NextRequest) {
