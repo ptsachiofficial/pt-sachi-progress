@@ -800,12 +800,21 @@ async function updateCategoryProgress(projectId: string, category: string) {
             }));
             
             try {
-                // Catatan: Jika ingin jadi real comment, harus reply_to_message_id ke pesan forward-an di group.
-                // Saat ini kita kirim sebagai pesan baru di group agar terlihat oleh semua anggota group.
-                const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id, mediaGroup);
+                // Gunakan group_message_id agar muncul sebagai komentar di channel post
+                const extra: any = { parse_mode: 'Markdown' };
+                if (p.group_message_id) {
+                    extra.reply_to_message_id = p.group_message_id;
+                }
+                
+                const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id, mediaGroup, extra);
                 msgs.forEach((m: any) => newMessageIds.push(m.message_id));
             } catch(e) {
                 console.error("Gagal kirim MediaGroup ke discussion", e);
+                // Fallback: Kirim tanpa reply jika gagal
+                try {
+                    const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id, mediaGroup);
+                    msgs.forEach((m: any) => newMessageIds.push(m.message_id));
+                } catch(e2) {}
             }
         }
 
@@ -967,6 +976,22 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json();
+
+        // --- Logic: Tangkap pesan yang diforward otomatis dari channel ke group ---
+        if (body.message?.forward_from_chat?.id?.toString() === MAIN_CHANNEL_ID) {
+            const channelMsgId = body.message.forward_from_message_id;
+            const groupMsgId = body.message.message_id;
+            const discussionChatId = body.message.chat.id;
+
+            // Update database agar project ini tahu ID pesan mana yang harus dibalas di group agar jadi comment
+            await supabase.from('master_project')
+                .update({ 
+                    group_message_id: groupMsgId,
+                    discussion_chat_id: discussionChatId 
+                })
+                .eq('main_message_id', channelMsgId);
+        }
+
         await bot.handleUpdate(body);
 
         return NextResponse.json({ success: true });
