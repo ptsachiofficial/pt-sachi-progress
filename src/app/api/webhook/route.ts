@@ -773,10 +773,17 @@ async function updateCategoryProgress(projectId: string, category: string) {
                 { parse_mode: 'Markdown' }
             );
             main_msg_id = msg.message_id;
-            await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
+            await supabase.from('master_project').update({ main_message_id: main_msg_id, group_message_id: null }).eq('id', projectId);
             
-            // Beri jeda agar Telegram sempat melakukan forward ke group diskusi
-            await new Promise(r => setTimeout(r, 2000));
+            // Beri jeda 3 detik agar Telegram sempat melakukan forward ke group diskusi dan Webhook kita menangkapnya
+            await new Promise(r => setTimeout(r, 3000));
+        }
+
+        // --- Re-fetch data project agar mendapatkan group_message_id terbaru yang baru saja di-update oleh Webhook ---
+        const { data: pFresh } = await supabase.from('master_project').select('*').eq('id', projectId).single();
+        if (pFresh) {
+            discussion_chat_id = pFresh.discussion_chat_id;
+            p.group_message_id = pFresh.group_message_id; // Update objek lokal p
         }
 
         // --- Logic: Refresh SEMUA kategori jika REFRESH_ONLY ---
@@ -1009,19 +1016,23 @@ export async function POST(req: NextRequest) {
 
         const body = await req.json();
 
-        // --- Logic: Tangkap pesan yang diforward otomatis dari channel ke group ---
-        if (body.message?.forward_from_chat?.id?.toString() === MAIN_CHANNEL_ID) {
-            const channelMsgId = body.message.forward_from_message_id;
-            const groupMsgId = body.message.message_id;
-            const discussionChatId = body.message.chat.id;
+        // --- Logic: Tangkap pesan yang diforward otomatis (Linked Channel -> Discussion Group) ---
+        // Biasanya is_automatic_forward: true atau ada forward_from_chat yang cocok
+        const msg = body.message || body.channel_post;
+        if (msg?.forward_from_chat?.id?.toString() === MAIN_CHANNEL_ID || msg?.is_automatic_forward) {
+            const channelMsgId = msg.forward_from_message_id;
+            const groupMsgId = msg.message_id;
+            const discussionChatId = msg.chat?.id;
 
-            // Update database agar project ini tahu ID pesan mana yang harus dibalas di group agar jadi comment
-            await supabase.from('master_project')
-                .update({ 
-                    group_message_id: groupMsgId,
-                    discussion_chat_id: discussionChatId 
-                })
-                .eq('main_message_id', channelMsgId);
+            if (channelMsgId && groupMsgId && discussionChatId) {
+                // Update database agar project ini tahu ID pesan mana yang harus dibalas di group agar jadi comment
+                await supabase.from('master_project')
+                    .update({ 
+                        group_message_id: groupMsgId,
+                        discussion_chat_id: discussionChatId 
+                    })
+                    .eq('main_message_id', channelMsgId);
+            }
         }
 
         await bot.handleUpdate(body);
