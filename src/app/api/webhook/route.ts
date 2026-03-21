@@ -908,11 +908,11 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
         for (const [chunkIdx, chunk] of chunks.entries()) {
             const pageChildren: any[] = [];
 
-            // 1. JUDUL (Centered, Underlined, Bold)
+            // 1. DYNAMIC CATEGORY TITLE (Centered, Underlined, Bold)
             pageChildren.push(new Paragraph({
                 children: [
                     new TextRun({
-                        text: "JUDUL",
+                        text: category.toUpperCase(),
                         bold: true,
                         underline: { type: UnderlineType.SINGLE },
                         size: 28,
@@ -963,12 +963,8 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
             pageChildren.push(headerTable);
             pageChildren.push(new Paragraph({ text: "", spacing: { after: 300 } }));
 
-            // 3. Category Title
-            pageChildren.push(new Paragraph({
-                children: [new TextRun({ text: category.toUpperCase(), bold: true, size: 24 })],
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 200 }
-            }));
+            // Category Title removed (already at top)
+
 
             // 4. Evidence Photo Grid (2x2 Portrait Boxes)
             const imagesInChunk: any[] = [];
@@ -979,7 +975,7 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
                         const buffer = Buffer.from(await res.arrayBuffer());
                         imagesInChunk.push(new ImageRun({
                             data: buffer,
-                            transformation: { width: 280, height: 380 }, // Taller boxes
+                            transformation: { width: 241, height: 328 }, // 6.39cm x 8.68cm approx
                             type: 'jpg'
                         }));
                     } catch(e) { imagesInChunk.push(null); }
@@ -989,33 +985,48 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
             const createPhotoCell = (imgRun: any) => new TableCell({
                 children: [
                     new Paragraph({
-                        children: imgRun ? [imgRun] : [new TextRun({ text: "LETAK FOTO", size: 16 })],
+                        children: imgRun ? [imgRun] : [new TextRun({ text: "LETAK FOTO", color: "888888", size: 16 })],
                         alignment: AlignmentType.CENTER,
                     })
                 ],
-                width: { size: 50, type: WidthType.PERCENTAGE },
+                width: { size: 48, type: WidthType.PERCENTAGE },
                 borders: {
                     top: { style: BorderStyle.SINGLE, size: 2 },
                     bottom: { style: BorderStyle.SINGLE, size: 2 },
                     left: { style: BorderStyle.SINGLE, size: 2 },
                     right: { style: BorderStyle.SINGLE, size: 2 },
                 },
-                margins: { top: 100, bottom: 100, left: 100, right: 100 },
-                verticalAlign: VerticalAlign.CENTER
+                verticalAlign: VerticalAlign.CENTER,
+                margins: { top: 50, bottom: 50 }
+            });
+
+            const createSpacerCell = () => new TableCell({
+                children: [new Paragraph("")],
+                width: { size: 4, type: WidthType.PERCENTAGE },
+                borders: {
+                    top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
+                    left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+                }
             });
 
             const photoRows = [
-                new TableRow({ children: [createPhotoCell(imagesInChunk[0]), createPhotoCell(imagesInChunk[1])] }),
+                new TableRow({ children: [createPhotoCell(imagesInChunk[0]), createSpacerCell(), createPhotoCell(imagesInChunk[1])] }),
                 new TableRow({ children: [
-                    new TableCell({ children: [new Paragraph("")], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }), 
-                    new TableCell({ children: [new Paragraph("")], borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } })
-                ] }), // Spacer
-                new TableRow({ children: [createPhotoCell(imagesInChunk[2]), createPhotoCell(imagesInChunk[3])] }),
+                    new TableCell({ children: [new Paragraph("")], width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }) 
+                ] }), // Spacer Baris
+                new TableRow({ children: [createPhotoCell(imagesInChunk[2]), createSpacerCell(), createPhotoCell(imagesInChunk[3])] }),
             ];
 
             const photoTable = new Table({
                 width: { size: 100, type: WidthType.PERCENTAGE },
-                borders: { insideHorizontal: { style: BorderStyle.NONE }, insideVertical: { style: BorderStyle.NONE }, top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } },
+                borders: { 
+                    insideHorizontal: { style: BorderStyle.NONE }, 
+                    insideVertical: { style: BorderStyle.NONE }, 
+                    top: { style: BorderStyle.NONE }, 
+                    bottom: { style: BorderStyle.NONE }, 
+                    left: { style: BorderStyle.NONE }, 
+                    right: { style: BorderStyle.NONE } 
+                },
                 rows: photoRows
             });
 

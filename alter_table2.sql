@@ -4,6 +4,7 @@
 -- 1. Tambahkan kolom baru di master_project
 ALTER TABLE master_project
 ADD COLUMN IF NOT EXISTS main_message_id BIGINT,
+ADD COLUMN IF NOT EXISTS group_message_id BIGINT,
 ADD COLUMN IF NOT EXISTS discussion_chat_id BIGINT,
 ADD COLUMN IF NOT EXISTS category_messages JSONB DEFAULT '{}'::jsonb;
 
