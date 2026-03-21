@@ -742,12 +742,19 @@ async function updateCategoryProgress(projectId: string, category: string) {
                 { parse_mode: 'Markdown' }
             );
             main_msg_id = msg.message_id;
+            
+            await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
+        }
+
+        // Jika discussion group id belum ada di DB, coba tarik dari server Telegram!
+        if (!discussion_chat_id) {
             try {
                 const chatInfo = await bot.telegram.getChat(MAIN_CHANNEL_ID) as any;
-                if (chatInfo.linked_chat_id) discussion_chat_id = chatInfo.linked_chat_id;
+                if (chatInfo.linked_chat_id) {
+                     discussion_chat_id = chatInfo.linked_chat_id;
+                     await supabase.from('master_project').update({ discussion_chat_id }).eq('id', projectId);
+                }
             } catch(e) { console.error("Linked chat info error:", e); }
-            
-            await supabase.from('master_project').update({ main_message_id: main_msg_id, discussion_chat_id: discussion_chat_id }).eq('id', projectId);
         }
 
         if (!discussion_chat_id) return;
