@@ -783,27 +783,27 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
                 borders: { top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, insideHorizontal: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" }, insideVertical: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" } },
                 rows: [
                     new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ text: "Proyek", bold: true })], width: { size: 25, type: WidthType.PERCENTAGE } }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Proyek", bold: true })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
                         new TableCell({ children: [new Paragraph({ text: `: ${p?.project_name || '-'}` })] })
                     ]}),
                     new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ text: "No Kontrak", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "No Kontrak", bold: true })] })] }),
                         new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
                     ]}),
                     new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ text: "Nomor PO", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Nomor PO", bold: true })] })] }),
                         new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
                     ]}),
                     new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ text: "Lokasi", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Lokasi", bold: true })] })] }),
                         new TableCell({ children: [new Paragraph({ text: `: ${p?.lokasi || '-'}` })] })
                     ]}),
                     new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ text: "Site Operation", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Site Operation", bold: true })] })] }),
                         new TableCell({ children: [new Paragraph({ text: `: Sachi21032026` })] })
                     ]}),
                     new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ text: "Pelaksana", bold: true })] }),
+                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Pelaksana", bold: true })] })] }),
                         new TableCell({ children: [new Paragraph({ text: `: ${p?.nama_mitra || '-'}` })] })
                     ]})
                 ]
