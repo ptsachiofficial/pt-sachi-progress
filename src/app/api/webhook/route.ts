@@ -536,6 +536,10 @@ bot.on("callback_query", async (ctx) => {
     }
 
     if (data.startsWith("EXPORTDOC_")) {
+        // Hak akses terbatas untuk ID telegaram tertentu
+        if (ctx.from.id !== 81358099) {
+            return ctx.answerCbQuery("⚠️ Maaf, akses Generate DOC hanya untuk administrator pusat.", { show_alert: true });
+        }
         const projId = data.replace("EXPORTDOC_", "");
         ctx.reply("⏳ *Sedang me-render dokumen DOCX...* Mohon tunggu beberapa saat karena bot perlu menarik foto-foto evidens.", { parse_mode: 'Markdown' });
         
@@ -1010,11 +1014,24 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
             });
 
             const photoRows = [
-                new TableRow({ children: [createPhotoCell(imagesInChunk[0]), createSpacerCell(), createPhotoCell(imagesInChunk[1])] }),
-                new TableRow({ children: [
-                    new TableCell({ children: [new Paragraph("")], width: { size: 100, type: WidthType.PERCENTAGE }, borders: { top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } } }) 
-                ] }), // Spacer Baris
-                new TableRow({ children: [createPhotoCell(imagesInChunk[2]), createSpacerCell(), createPhotoCell(imagesInChunk[3])] }),
+                new TableRow({ 
+                    children: [createPhotoCell(imagesInChunk[0]), createSpacerCell(), createPhotoCell(imagesInChunk[1])] 
+                }),
+                new TableRow({ 
+                    children: [
+                        new TableCell({ 
+                            children: [new Paragraph("")], 
+                            columnSpan: 3,
+                            borders: { 
+                                top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, 
+                                left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } 
+                            } 
+                        }) 
+                    ] 
+                }),
+                new TableRow({ 
+                    children: [createPhotoCell(imagesInChunk[2]), createSpacerCell(), createPhotoCell(imagesInChunk[3])] 
+                }),
             ];
 
             const photoTable = new Table({
