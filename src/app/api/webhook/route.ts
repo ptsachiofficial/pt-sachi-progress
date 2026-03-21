@@ -773,35 +773,40 @@ async function updateCategoryProgress(projectId: string, category: string) {
                 try {
                     await bot.telegram.editMessageText(MAIN_CHANNEL_ID, Number(p.main_message_id), undefined, msgText, { parse_mode: 'Markdown' });
                     successEdit = true;
-                } catch(e) {
-                    console.log("Edit failed, sending new message...");
-                }
+                } catch(e) { console.log("Edit failed, sending new message..."); }
             }
 
             if (!successEdit) {
-                // Hapus yang lama jika ada (opsional, karena edit gagal biasanya karena sudah dihapus)
                 if (p.main_message_id) {
                     try { await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, Number(p.main_message_id)); } catch(e) {}
                 }
-                
                 const msg = await bot.telegram.sendMessage(MAIN_CHANNEL_ID, msgText, { parse_mode: 'Markdown' });
                 main_msg_id = msg.message_id;
-                
-                // Jika kirim baru, kita butuh sync ulang group_message_id
-                if (discussion_chat_id) {
-                    try {
-                        const fwd = await bot.telegram.forwardMessage(discussion_chat_id, MAIN_CHANNEL_ID, main_msg_id);
-                        p.group_message_id = fwd.message_id;
-                        await supabase.from('master_project').update({ 
-                            main_message_id: main_msg_id, 
-                            group_message_id: p.group_message_id 
-                        }).eq('id', projectId);
-                    } catch(e) {
-                        await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
+            }
+
+            // --- SYNC GROUP MESSAGE ID (Manual Forward + Clean Up) ---
+            if (discussion_chat_id) {
+                try {
+                    // Hapus jejak lama di grup agar tidak menumpuk
+                    if (p.group_message_id) {
+                        try { await bot.telegram.deleteMessage(discussion_chat_id, Number(p.group_message_id)); } catch(e) {}
                     }
-                } else {
+
+                    // Forward baru untuk dapat ID yang fresh dan valid
+                    const fwd = await bot.telegram.forwardMessage(discussion_chat_id, MAIN_CHANNEL_ID, main_msg_id);
+                    p.group_message_id = fwd.message_id;
+                    
+                    await supabase.from('master_project').update({ 
+                        main_message_id: main_msg_id, 
+                        group_message_id: p.group_message_id,
+                        discussion_chat_id: discussion_chat_id
+                    }).eq('id', projectId);
+                } catch(e) {
+                    console.error("Group re-sync failed:", e);
                     await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
                 }
+            } else {
+                await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
             }
         } else {
             // Jika bukan refresh total, pastikan kita punya ID terbaru dari DB
