@@ -763,24 +763,31 @@ async function updateCategoryProgress(projectId: string, category: string) {
         }
 
         // 2. Jika project baru/lama (belum ter-forward) atau dipaksa refresh rincian utama
+        // 2. Jika project baru/lama (belum ter-forward) atau dipaksa refresh rincian utama
         if (!main_msg_id || (!discussion_chat_id && p.main_message_id) || category === "REFRESH_ONLY") {
             if (p.main_message_id) {
-                try { await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, p.main_message_id); } catch(e) {}
+                try { 
+                    await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, p.main_message_id); 
+                } catch(e) { 
+                    console.error("Gagal hapus pesan lama:", e); 
+                    // Jika gagal hapus, mungkin bot bukan admin di channel
+                }
             }
-            const msg = await bot.telegram.sendMessage(
-                MAIN_CHANNEL_ID,
-                `🏢 *PROJECT*: ${p.project_name || '-'}\n📄 *SPMK*: ${p.no_spmk || '-'}\n📍 *Lokasi*: ${p.lokasi || '-'}\n\n_Seluruh dokumentasi progres akan kami kumpulkan di bawah pesan ini._`,
-                { parse_mode: 'Markdown' }
-            );
+            
+            const msgText = `🏢 *PROJECT*: ${p.project_name || '-'}\n📄 *SPMK*: ${p.no_spmk || '-'}\n📍 *Lokasi*: ${p.lokasi || '-'}\n\n_Seluruh dokumentasi progres akan kami kumpulkan di bawah pesan ini._`;
+            const msg = await bot.telegram.sendMessage(MAIN_CHANNEL_ID, msgText, { parse_mode: 'Markdown' });
+            
             main_msg_id = msg.message_id;
+            // Penting: Kosongkan group_message_id dulu agar tidak pakai yang lama
             await supabase.from('master_project').update({ main_message_id: main_msg_id, group_message_id: null }).eq('id', projectId);
             
-            // --- Retry Logic: Tunggu sampai Webhook menangkap forward-an dari Telegram (max 5 detik) ---
-            for (let i = 0; i < 5; i++) {
+            // --- Polling: Tunggu Webhook mengupdate group_message_id ---
+            for (let i = 0; i < 10; i++) {
                 await new Promise(r => setTimeout(r, 1000));
-                const { data: pCheck } = await supabase.from('master_project').select('group_message_id').eq('id', projectId).single();
+                const { data: pCheck } = await supabase.from('master_project').select('group_message_id, discussion_chat_id').eq('id', projectId).single();
                 if (pCheck?.group_message_id) {
                     p.group_message_id = pCheck.group_message_id;
+                    discussion_chat_id = pCheck.discussion_chat_id || discussion_chat_id;
                     break;
                 }
             }
@@ -1024,22 +1031,40 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // --- Logic: Tangkap pesan yang diforward otomatis (Linked Channel -> Discussion Group) ---
-        const msg = body.message || body.channel_post;
-        const isFromChannel = msg?.forward_from_chat?.id?.toString() === MAIN_CHANNEL_ID;
-        const isAutoForward = msg?.is_automatic_forward === true;
+        const m = body.message || body.channel_post || body.edited_message;
+        const channelIdStr = MAIN_CHANNEL_ID.toString().trim();
+        const forwardIdStr = m?.forward_from_chat?.id?.toString().trim();
+        const isFromChannel = forwardIdStr === channelIdStr;
+        const isAutoForward = m?.is_automatic_forward === true;
 
-        if (isFromChannel || isAutoForward) {
-            const channelMsgId = msg?.forward_from_message_id;
-            const groupMsgId = msg?.message_id;
-            const discussionChatId = msg?.chat?.id;
+        if ((isFromChannel || isAutoForward) && m?.forward_from_message_id) {
+            const channelMsgId = m.forward_from_message_id;
+            const groupMsgId = m.message_id;
+            const discChatId = m.chat?.id;
 
-            if (channelMsgId && groupMsgId) {
+            // Attempt 1: Match by main_message_id
+            let { data: proj } = await supabase.from('master_project').select('id').eq('main_message_id', channelMsgId).single();
+            
+            // Attempt 2: Fallback ke SPMK jika ID match gagal (mungkin karena delay insert)
+            if (!proj && m.text) {
+                const lines = m.text.split('\n');
+                const spmkLine = lines.find((l: string) => l.includes('SPMK:'));
+                if (spmkLine) {
+                    const spmk = spmkLine.split(':')[1]?.trim();
+                    if (spmk) {
+                        const { data: projBySpmk } = await supabase.from('master_project').select('id').eq('no_spmk', spmk).order('created_at', { ascending: false }).limit(1).single();
+                        proj = projBySpmk;
+                    }
+                }
+            }
+
+            if (proj) {
                 await supabase.from('master_project')
                     .update({ 
                         group_message_id: groupMsgId,
-                        discussion_chat_id: discussionChatId 
+                        discussion_chat_id: discChatId 
                     })
-                    .eq('main_message_id', channelMsgId);
+                    .eq('id', proj.id);
             }
         }
 
