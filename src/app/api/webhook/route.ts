@@ -3,7 +3,7 @@ import { Telegraf, Markup } from "telegraf";
 import { supabase } from "@/lib/supabase";
 import { uploadToR2 } from "@/lib/r2";
 import lodash from 'lodash';
-import { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle } from 'docx';
+import { Document, Packer, Paragraph, TextRun, ImageRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, UnderlineType, VerticalAlign, SectionType } from 'docx';
 
 const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN || "");
 const MAIN_CHANNEL_ID = process.env.MAIN_CHANNEL_ID || "";
