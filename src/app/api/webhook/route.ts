@@ -220,11 +220,19 @@ bot.on("callback_query", async (ctx) => {
         const buttons = [
             [Markup.button.callback("📝 Mengisi Laporan Progres", `LAPPROG_${projId}`)],
             [Markup.button.callback("📊 Cek Status Progres Murni", `STATPROJ_${projId}`)],
+            [Markup.button.callback("📢 Refresh/Kirim ke Channel", `REFRESH_PROJ_${projId}`)],
             [Markup.button.callback("🔙 Batal/Kembali", "MENU_LAP_PROJ")]
         ];
 
         return ctx.editMessageText(detail, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) })
             .catch(()=>ctx.reply(detail, { parse_mode:'Markdown', ...Markup.inlineKeyboard(buttons) }));
+    }
+
+    if (data.startsWith("REFRESH_PROJ_")) {
+        const projId = data.replace("REFRESH_PROJ_", "");
+        await ctx.answerCbQuery("⏳ Sedang menyegarkan data Channel...");
+        await updateCategoryProgress(projId, "REFRESH_ONLY");
+        return ctx.reply("✅ *Berhasil!* Proyek telah di-broadcast ulang ke Channel agar terhubung dengan Grup Diskusi.", { parse_mode: 'Markdown' });
     }
 
     // Laporan Progres - Pilih Kategori
@@ -735,18 +743,7 @@ async function updateCategoryProgress(projectId: string, category: string) {
         let discussion_chat_id = p.discussion_chat_id;
         let category_msgs = p.category_messages || {};
 
-        if (!main_msg_id) {
-            const msg = await bot.telegram.sendMessage(
-                MAIN_CHANNEL_ID,
-                `🏢 *PROJECT*: ${p.project_name || '-'}\n📄 *SPMK*: ${p.no_spmk || '-'}\n📍 *Lokasi*: ${p.lokasi || '-'}\n\n_Seluruh dokumentasi progres akan kami kumpulkan di bawah pesan ini._`,
-                { parse_mode: 'Markdown' }
-            );
-            main_msg_id = msg.message_id;
-            
-            await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
-        }
-
-        // Jika discussion group id belum ada di DB, coba tarik dari server Telegram!
+        // 1. Dapatkan Discussion Chat ID jika belum ada
         if (!discussion_chat_id) {
             try {
                 const chatInfo = await bot.telegram.getChat(MAIN_CHANNEL_ID) as any;
@@ -757,13 +754,32 @@ async function updateCategoryProgress(projectId: string, category: string) {
             } catch(e) { console.error("Linked chat info error:", e); }
         }
 
-        if (!discussion_chat_id) return;
+        // 2. Jika project lama (belum ter-forward) atau dipaksa refresh
+        if (!main_msg_id || (!discussion_chat_id && p.main_message_id) || category === "REFRESH_ONLY") {
+            if (p.main_message_id) {
+                try { await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, p.main_message_id); } catch(e) {}
+            }
+            const msg = await bot.telegram.sendMessage(
+                MAIN_CHANNEL_ID,
+                `🏢 *PROJECT*: ${p.project_name || '-'}\n📄 *SPMK*: ${p.no_spmk || '-'}\n📍 *Lokasi*: ${p.lokasi || '-'}\n\n_Seluruh dokumentasi progres akan kami kumpulkan di bawah pesan ini._`,
+                { parse_mode: 'Markdown' }
+            );
+            main_msg_id = msg.message_id;
+            await supabase.from('master_project').update({ main_message_id: main_msg_id }).eq('id', projectId);
+            
+            // Beri jeda agar Telegram sempat melakukan forward ke group diskusi
+            await new Promise(r => setTimeout(r, 2000));
+        }
 
+        if (!discussion_chat_id || category === "REFRESH_ONLY") return;
+
+        // 3. Hapus pesan lama kategori ini
         const oldMsgIds = category_msgs[category] || [];
         for (const msgId of oldMsgIds) {
             try { await bot.telegram.deleteMessage(discussion_chat_id, msgId); } catch(e) {}
         }
 
+        // 4. Kirim Album Baru
         const { data: evidences } = await supabase.from('evidences').select('*').eq('project_id', projectId).eq('category', category);
         if (!evidences || evidences.length === 0) return;
 
@@ -779,6 +795,8 @@ async function updateCategoryProgress(projectId: string, category: string) {
             }));
             
             try {
+                // Catatan: Jika ingin jadi real comment, harus reply_to_message_id ke pesan forward-an di group.
+                // Saat ini kita kirim sebagai pesan baru di group agar terlihat oleh semua anggota group.
                 const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id, mediaGroup);
                 msgs.forEach((m: any) => newMessageIds.push(m.message_id));
             } catch(e) {
@@ -858,7 +876,7 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
                     const buffer = Buffer.from(arrayBuffer);
                     imageRuns.push(new ImageRun({
                         data: buffer,
-                        transformation: { width: 300, height: 225 },
+                        transformation: { width: 335, height: 250 },
                         type: 'jpg'
                     }));
                 } catch(e) {
@@ -869,15 +887,15 @@ async function generateDocxReport(projectId: string): Promise<Buffer> {
             const tableRows = [];
             if (imageRuns.length > 0) {
                  const cells = [];
-                 cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[0] as any], alignment: AlignmentType.CENTER })], margins: { top: 100, bottom: 100, left: 100, right: 100 } }));
-                 if (imageRuns[1]) cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[1] as any], alignment: AlignmentType.CENTER })], margins: { top: 100, bottom: 100, left: 100, right: 100 } }));
+                 cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[0] as any], alignment: AlignmentType.CENTER })], margins: { top: 0, bottom: 0, left: 0, right: 0 } }));
+                 if (imageRuns[1]) cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[1] as any], alignment: AlignmentType.CENTER })], margins: { top: 0, bottom: 0, left: 0, right: 0 } }));
                  else cells.push(new TableCell({ children: [new Paragraph("")] }));
                  tableRows.push(new TableRow({ children: cells }));
             }
             if (imageRuns.length > 2) {
                  const cells = [];
-                 cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[2] as any], alignment: AlignmentType.CENTER })], margins: { top: 100, bottom: 100, left: 100, right: 100 } }));
-                 if (imageRuns[3]) cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[3] as any], alignment: AlignmentType.CENTER })], margins: { top: 100, bottom: 100, left: 100, right: 100 } }));
+                 cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[2] as any], alignment: AlignmentType.CENTER })], margins: { top: 0, bottom: 0, left: 0, right: 0 } }));
+                 if (imageRuns[3]) cells.push(new TableCell({ children: [new Paragraph({ children: [imageRuns[3] as any], alignment: AlignmentType.CENTER })], margins: { top: 0, bottom: 0, left: 0, right: 0 } }));
                  else cells.push(new TableCell({ children: [new Paragraph("")] }));
                  tableRows.push(new TableRow({ children: cells }));
             }
