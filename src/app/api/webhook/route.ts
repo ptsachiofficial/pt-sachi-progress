@@ -840,15 +840,15 @@ async function updateCategoryProgress(projectId: string, category: string) {
             return;
         }
 
-        if (!discussion_chat_id) return;
-
-        // 3. Hapus pesan lama kategori ini
-        const oldMsgIds = category_msgs[category] || [];
-        for (const msgId of oldMsgIds) {
-            try { await bot.telegram.deleteMessage(discussion_chat_id, msgId); } catch(e) {}
+        // No longer blocking sync if discussion chat is missing
+        if (discussion_chat_id) {
+            const oldMsgIds = category_msgs[category] || [];
+            for (const msgId of oldMsgIds) {
+                try { await bot.telegram.deleteMessage(discussion_chat_id, msgId); } catch(e) {}
+            }
         }
 
-        // 4. Kirim Album Baru
+        // 4. Kirim Album Baru ke CHANNEL (Reply ke Header)
         const { data: evidences } = await supabase.from('evidences').select('*').eq('project_id', projectId).eq('category', category);
         if (!evidences || evidences.length === 0) return;
 
@@ -864,17 +864,18 @@ async function updateCategoryProgress(projectId: string, category: string) {
             }));
             
             try {
-                const extra: any = { parse_mode: 'Markdown' };
-                if (p.group_message_id) {
-                    extra.reply_to_message_id = p.group_message_id;
-                }
+                // KIRIM LANGSUNG KE CHANNEL SEBAGAI REPLY KE HEADER AGAR MASUK KOMENTAR
+                const extra: any = { 
+                    parse_mode: 'Markdown',
+                    reply_to_message_id: Number(p.main_message_id) || undefined
+                };
                 
-                const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id, mediaGroup, extra);
+                const msgs = await bot.telegram.sendMediaGroup(MAIN_CHANNEL_ID, mediaGroup, extra);
                 msgs.forEach((m: any) => newMessageIds.push(m.message_id));
             } catch(e) {
-                console.error("Gagal kirim MediaGroup ke discussion", e);
+                console.error("Gagal kirim MediaGroup ke channel", e);
                 try {
-                    const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id, mediaGroup);
+                    const msgs = await bot.telegram.sendMediaGroup(MAIN_CHANNEL_ID, mediaGroup);
                     msgs.forEach((m: any) => newMessageIds.push(m.message_id));
                 } catch(e2) {}
             }
