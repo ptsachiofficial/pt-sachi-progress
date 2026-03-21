@@ -775,15 +775,22 @@ async function updateCategoryProgress(projectId: string, category: string) {
             main_msg_id = msg.message_id;
             await supabase.from('master_project').update({ main_message_id: main_msg_id, group_message_id: null }).eq('id', projectId);
             
-            // Beri jeda 3 detik agar Telegram sempat melakukan forward ke group diskusi dan Webhook kita menangkapnya
-            await new Promise(r => setTimeout(r, 3000));
-        }
-
-        // --- Re-fetch data project agar mendapatkan group_message_id terbaru yang baru saja di-update oleh Webhook ---
-        const { data: pFresh } = await supabase.from('master_project').select('*').eq('id', projectId).single();
-        if (pFresh) {
-            discussion_chat_id = pFresh.discussion_chat_id;
-            p.group_message_id = pFresh.group_message_id; // Update objek lokal p
+            // --- Retry Logic: Tunggu sampai Webhook menangkap forward-an dari Telegram (max 5 detik) ---
+            for (let i = 0; i < 5; i++) {
+                await new Promise(r => setTimeout(r, 1000));
+                const { data: pCheck } = await supabase.from('master_project').select('group_message_id').eq('id', projectId).single();
+                if (pCheck?.group_message_id) {
+                    p.group_message_id = pCheck.group_message_id;
+                    break;
+                }
+            }
+        } else {
+            // Jika bukan refresh total, pastikan kita punya ID terbaru dari DB
+             const { data: pCheck } = await supabase.from('master_project').select('group_message_id, discussion_chat_id').eq('id', projectId).single();
+             if (pCheck) {
+                 p.group_message_id = pCheck.group_message_id;
+                 discussion_chat_id = pCheck.discussion_chat_id || discussion_chat_id;
+             }
         }
 
         // --- Logic: Refresh SEMUA kategori jika REFRESH_ONLY ---
@@ -1017,15 +1024,16 @@ export async function POST(req: NextRequest) {
         const body = await req.json();
 
         // --- Logic: Tangkap pesan yang diforward otomatis (Linked Channel -> Discussion Group) ---
-        // Biasanya is_automatic_forward: true atau ada forward_from_chat yang cocok
         const msg = body.message || body.channel_post;
-        if (msg?.forward_from_chat?.id?.toString() === MAIN_CHANNEL_ID || msg?.is_automatic_forward) {
-            const channelMsgId = msg.forward_from_message_id;
-            const groupMsgId = msg.message_id;
-            const discussionChatId = msg.chat?.id;
+        const isFromChannel = msg?.forward_from_chat?.id?.toString() === MAIN_CHANNEL_ID;
+        const isAutoForward = msg?.is_automatic_forward === true;
 
-            if (channelMsgId && groupMsgId && discussionChatId) {
-                // Update database agar project ini tahu ID pesan mana yang harus dibalas di group agar jadi comment
+        if (isFromChannel || isAutoForward) {
+            const channelMsgId = msg?.forward_from_message_id;
+            const groupMsgId = msg?.message_id;
+            const discussionChatId = msg?.chat?.id;
+
+            if (channelMsgId && groupMsgId) {
                 await supabase.from('master_project')
                     .update({ 
                         group_message_id: groupMsgId,
