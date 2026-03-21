@@ -800,7 +800,7 @@ async function updateCategoryProgress(projectId: string, category: string) {
                     break;
                 }
             }
-        } else { else {
+        } else {
             // Jika bukan refresh total, pastikan kita punya ID terbaru dari DB
              const { data: pCheck } = await supabase.from('master_project').select('group_message_id, discussion_chat_id').eq('id', projectId).single();
              if (pCheck) {
