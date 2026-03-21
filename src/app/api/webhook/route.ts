@@ -219,10 +219,15 @@ bot.on("callback_query", async (ctx) => {
 
         const buttons = [
             [Markup.button.callback("📝 Mengisi Laporan Progres", `LAPPROG_${projId}`)],
-            [Markup.button.callback("📊 Cek Status Progres Murni", `STATPROJ_${projId}`)],
-            [Markup.button.callback("📢 Refresh/Kirim ke Channel", `REFRESH_PROJ_${projId}`)],
-            [Markup.button.callback("🔙 Batal/Kembali", "MENU_LAP_PROJ")]
+            [Markup.button.callback("📊 Cek Status Progres Murni", `STATPROJ_${projId}`)]
         ];
+        
+        // Hanya tampilkan tombol Refresh untuk admin ID 81358099
+        if (telegram_id === 81358099) {
+            buttons.push([Markup.button.callback("📢 Refresh/Kirim ke Channel", `REFRESH_PROJ_${projId}`)]);
+        }
+
+        buttons.push([Markup.button.callback("🔙 Batal/Kembali", "MENU_LAP_PROJ")]);
 
         return ctx.editMessageText(detail, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) })
             .catch(()=>ctx.reply(detail, { parse_mode:'Markdown', ...Markup.inlineKeyboard(buttons) }));
