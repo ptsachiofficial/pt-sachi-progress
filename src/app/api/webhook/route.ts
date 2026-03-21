@@ -475,17 +475,20 @@ bot.on("callback_query", async (ctx) => {
 
         // Insert ke tabel evidences
         if (laporanData && photos.length > 0) {
+            // Gunakan nama Task/Designator spesifik sebagai kategori agar di group diskusi ter-group per task
+            const specificCategory = sd.task + (sd.designator ? ` - ${sd.designator}` : '');
+            
             const evData = photos.map((p: any) => ({
                 laporan_id: laporanData.id,
                 project_id: sd.project_id,
-                category: sd.category,
+                category: specificCategory,
                 telegram_file_id: p.file_id,
                 r2_url: p.r2_url
             }));
             await supabase.from('evidences').insert(evData);
             
             // Trigger update MediaGroup ke Discussion Group
-            await updateCategoryProgress(sd.project_id, sd.category);
+            await updateCategoryProgress(sd.project_id, specificCategory);
         }
 
         await clearSession(telegram_id);
@@ -759,7 +762,7 @@ async function updateCategoryProgress(projectId: string, category: string) {
             } catch(e) { console.error("Linked chat info error:", e); }
         }
 
-        // 2. Jika project lama (belum ter-forward) atau dipaksa refresh
+        // 2. Jika project baru/lama (belum ter-forward) atau dipaksa refresh rincian utama
         if (!main_msg_id || (!discussion_chat_id && p.main_message_id) || category === "REFRESH_ONLY") {
             if (p.main_message_id) {
                 try { await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, p.main_message_id); } catch(e) {}
@@ -776,7 +779,17 @@ async function updateCategoryProgress(projectId: string, category: string) {
             await new Promise(r => setTimeout(r, 2000));
         }
 
-        if (!discussion_chat_id || category === "REFRESH_ONLY") return;
+        // --- Logic: Refresh SEMUA kategori jika REFRESH_ONLY ---
+        if (category === "REFRESH_ONLY") {
+            const { data: allEvs } = await supabase.from('evidences').select('category').eq('project_id', projectId);
+            const uniqueCats = Array.from(new Set((allEvs || []).map(x => x.category)));
+            for (const cat of uniqueCats) {
+                await updateCategoryProgress(projectId, cat);
+            }
+            return;
+        }
+
+        if (!discussion_chat_id) return;
 
         // 3. Hapus pesan lama kategori ini
         const oldMsgIds = category_msgs[category] || [];
@@ -795,12 +808,11 @@ async function updateCategoryProgress(projectId: string, category: string) {
             const mediaGroup = chunk.map((ev: any, i: number) => ({
                 type: 'photo' as const,
                 media: ev.telegram_file_id,
-                caption: (idx === 0 && i === 0) ? `📁 *Kategori:* ${category}\n_Total Eviden:_ ${evidences.length} Foto` : undefined,
+                caption: (idx === 0 && i === 0) ? `📂 *Designator:* ${category}\n_Total Eviden:_ ${evidences.length} Foto` : undefined,
                 parse_mode: 'Markdown' as const
             }));
             
             try {
-                // Gunakan group_message_id agar muncul sebagai komentar di channel post
                 const extra: any = { parse_mode: 'Markdown' };
                 if (p.group_message_id) {
                     extra.reply_to_message_id = p.group_message_id;
@@ -810,7 +822,6 @@ async function updateCategoryProgress(projectId: string, category: string) {
                 msgs.forEach((m: any) => newMessageIds.push(m.message_id));
             } catch(e) {
                 console.error("Gagal kirim MediaGroup ke discussion", e);
-                // Fallback: Kirim tanpa reply jika gagal
                 try {
                     const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id, mediaGroup);
                     msgs.forEach((m: any) => newMessageIds.push(m.message_id));
