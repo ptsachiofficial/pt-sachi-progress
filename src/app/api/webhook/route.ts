@@ -36,23 +36,23 @@ const MAIN_MENU = Markup.inlineKeyboard([
 
 // --- TASK TO DESIGNATOR MAPPING FROM KATEGORI.csv ---
 const TASK_DESIGNATOR_MAP: Record<string, string[]> = {
-  "BC-TR (GALIAN) / BORING MANUAL / ROJOK (DD-BM)": ["EXCAVATION-0.4", "EXCAVATION-0.6", "EXCAVATION-1.0", "EXCAVATION-1.2", "EXCAVATION-1.5", "BCTR-ROCK", "BD-SK", "DD-BRNG-HDPE-40-1", "DD-BRNG-HDPE-40-2", "DD-BRNG-HDPE-50-1", "DD-BRNG-HDPE-50-2", "DD-ROD", "DD-RV-1", "DD-RV-CONCRETE", "DD-DS-S1", "DD-DS-COD1-M"],
-  "PEMASANGAN SUBDUCT / HDPE / PIPA": ["HDPE-40-33", "PIPE-BRIDGE", "RP-GALVANIS"],
-  "PEMBUATAN & PEMASANGAN HANDHOLE": ["MH-HH-170", "MH-PIT-120", "HH-PIT-80", "HH-PIT-P-HA", "HH-PIT-P-FAT", "HH-PIT-P-FDT", "MH-HH-REKONDISI"],
-  "PENARIKKAN KABEL FEEDER": ["AC-ADSS-SM-48C", "AC-ADSS-SM-96C", "AC-ADSS-SM-144C", "AC-ADSS-SM-288C"],
-  "PENARIKKAN KABEL DISTRIBUSI": ["AC-ADSS-SM-12C", "AC-ADSS-SM-24C", "AC-ADSS-SM-48C", "AC-ADSS-SM-96C"],
-  "PEMASANGAN TIANG 7m / 9m": ["NP-6.0-100-1S", "NP-7.0-140-2S", "NP-7.0-140-3S", "NP-9.0-140-3S", "NP-CB-7.0-250", "NP-CB-9.0-250"],
-  "PEMASANGAN ODC": ["FDT-POLE-48C", "FDT-POLE-96C", "FDT-STDG-96C", "FDT-STDG-144C", "FDT-STDG-288C"],
-  "PEMASANGAN ODP": ["FAT-PB-8C-SOLID", "FAT-PB-16C-SOLID", "FAT-PDSTL-8", "FAT-PDSTL-16"],
-  "PEMASANGAN DAN TERMINASI OTB": ["Base Tray ODC", "OTB-SM-6", "OTB-SM-8", "OTB-SM-12", "OTB-SM-24", "OTB-SM-48", "OTB-SM-96", "OTB-SM-144", "OTB-SM-288"],
-  "PEMASANGAN CLOSURE": ["JC-OF-SM-12C", "JC-OF-SM-24C", "JC-OF-SM-48C", "JC-OF-SM-96C", "JC-OF-SM-144C", "JC-OF-SM-288C"],
-  "PEMASANGAN AKSESORIS": ["ACC-STAINLESS BELT", "ACC-SUSPENSION AYUN", "ACC-HELLICAL", "ACC-ANCHORING", "ACC-Bracket", "ACC-POLESTRAP SPIRAL"],
-  "TERMINASI ODC": ["FS-OF-SM", "NN-OTDR-CORE", "NN-CO-CORE"],
-  "TERMINASI ODP": ["FS-OF-SM", "NN-CO-CORE"],
-  "TERMINASI CLOSURE": ["FS-OF-SM", "NN-CO-CORE"],
-  "PEMASANGAN IKR/IKG": [],
-  "INSTALASI FTM": [],
-  "INSTALASI JUMPER FTM (OLT-FEEDER)": []
+    "BC-TR (GALIAN) / BORING MANUAL / ROJOK (DD-BM)": ["EXCAVATION-0.4", "EXCAVATION-0.6", "EXCAVATION-1.0", "EXCAVATION-1.2", "EXCAVATION-1.5", "BCTR-ROCK", "BD-SK", "DD-BRNG-HDPE-40-1", "DD-BRNG-HDPE-40-2", "DD-BRNG-HDPE-50-1", "DD-BRNG-HDPE-50-2", "DD-ROD", "DD-RV-1", "DD-RV-CONCRETE", "DD-DS-S1", "DD-DS-COD1-M"],
+    "PEMASANGAN SUBDUCT / HDPE / PIPA": ["HDPE-40-33", "PIPE-BRIDGE", "RP-GALVANIS"],
+    "PEMBUATAN & PEMASANGAN HANDHOLE": ["MH-HH-170", "MH-PIT-120", "HH-PIT-80", "HH-PIT-P-HA", "HH-PIT-P-FAT", "HH-PIT-P-FDT", "MH-HH-REKONDISI"],
+    "PENARIKKAN KABEL FEEDER": ["AC-ADSS-SM-48C", "AC-ADSS-SM-96C", "AC-ADSS-SM-144C", "AC-ADSS-SM-288C"],
+    "PENARIKKAN KABEL DISTRIBUSI": ["AC-ADSS-SM-12C", "AC-ADSS-SM-24C", "AC-ADSS-SM-48C", "AC-ADSS-SM-96C"],
+    "PEMASANGAN TIANG 7m / 9m": ["NP-6.0-100-1S", "NP-7.0-140-2S", "NP-7.0-140-3S", "NP-9.0-140-3S", "NP-CB-7.0-250", "NP-CB-9.0-250"],
+    "PEMASANGAN ODC": ["FDT-POLE-48C", "FDT-POLE-96C", "FDT-STDG-96C", "FDT-STDG-144C", "FDT-STDG-288C"],
+    "PEMASANGAN ODP": ["FAT-PB-8C-SOLID", "FAT-PB-16C-SOLID", "FAT-PDSTL-8", "FAT-PDSTL-16"],
+    "PEMASANGAN DAN TERMINASI OTB": ["Base Tray ODC", "OTB-SM-6", "OTB-SM-8", "OTB-SM-12", "OTB-SM-24", "OTB-SM-48", "OTB-SM-96", "OTB-SM-144", "OTB-SM-288"],
+    "PEMASANGAN CLOSURE": ["JC-OF-SM-12C", "JC-OF-SM-24C", "JC-OF-SM-48C", "JC-OF-SM-96C", "JC-OF-SM-144C", "JC-OF-SM-288C"],
+    "PEMASANGAN AKSESORIS": ["ACC-STAINLESS BELT", "ACC-SUSPENSION AYUN", "ACC-HELLICAL", "ACC-ANCHORING", "ACC-Bracket", "ACC-POLESTRAP SPIRAL"],
+    "TERMINASI ODC": ["FS-OF-SM", "NN-OTDR-CORE", "NN-CO-CORE"],
+    "TERMINASI ODP": ["FS-OF-SM", "NN-CO-CORE"],
+    "TERMINASI CLOSURE": ["FS-OF-SM", "NN-CO-CORE"],
+    "PEMASANGAN IKR/IKG": [],
+    "INSTALASI FTM": [],
+    "INSTALASI JUMPER FTM (OLT-FEEDER)": []
 };
 
 // --- Helper Info Syarat Foto Khusus berdasarkan ROLEBOT.txt ---
@@ -136,7 +136,7 @@ bot.on("callback_query", async (ctx) => {
         const session = await getSession(telegram_id);
         const p = session.data.projectDraft;
         if (!p) return ctx.reply("⚠️ *Sesi Anda telah kedaluwarsa.*\n\nSilakan ketik /start untuk mengulang proses dari awal. 🔄");
-        
+
         ctx.editMessageText("⏳ *Menyimpan Project Baru...*\nMohon tunggu sebentar, sistem sedang memproses data Anda.");
         const { data: insertedProject, error } = await supabase.from('master_project').insert({
             nama_mitra: p.mitra,
@@ -151,7 +151,7 @@ bot.on("callback_query", async (ctx) => {
             console.error(error);
             return ctx.reply("❌ *Gagal Menyimpan Project!*\n\nTerjadi kesalahan fatal pada sistem. Silakan coba lagi beberapa saat.");
         }
-        
+
         // --- SEGERA KIRIM KE CHANNEL ---
         if (MAIN_CHANNEL_ID) {
             try {
@@ -160,18 +160,18 @@ bot.on("callback_query", async (ctx) => {
                     `🏢 *PROJECT BARU*: ${insertedProject.project_name || '-'}\n📄 *SPMK*: ${insertedProject.no_spmk || '-'}\n📍 *Lokasi*: ${insertedProject.lokasi || '-'}\n\n_Seluruh dokumentasi progres proyek ini akan dikumpulkan di bawah thread pesan ini._`,
                     { parse_mode: 'Markdown' }
                 );
-                
+
                 let discussion_chat_id = null;
                 try {
                     const chatInfo = await bot.telegram.getChat(MAIN_CHANNEL_ID) as any;
                     if (chatInfo.linked_chat_id) discussion_chat_id = chatInfo.linked_chat_id;
-                } catch(e) {}
-                
-                await supabase.from('master_project').update({ 
-                    main_message_id: msg.message_id, 
-                    discussion_chat_id: discussion_chat_id 
+                } catch (e) { }
+
+                await supabase.from('master_project').update({
+                    main_message_id: msg.message_id,
+                    discussion_chat_id: discussion_chat_id
                 }).eq('id', insertedProject.id);
-            } catch(e) { console.error("Broadcast new project failed:", e); }
+            } catch (e) { console.error("Broadcast new project failed:", e); }
         }
         // ---------------------------------
 
@@ -189,14 +189,14 @@ bot.on("callback_query", async (ctx) => {
     // ============================================
     if (data === "MENU_LAP_PROJ") {
         const { data: projects } = await supabase.from('master_project').select('id, project_name').order('created_at', { ascending: false }).limit(10);
-        
+
         if (!projects || projects.length === 0) {
             return ctx.reply("📭 *Data Project Kosong*\n\nBelum ada data project yang terdaftar. Sila buat project baru terlebih dahulu via menu sebelumnya. 🏢", { parse_mode: 'Markdown' });
         }
 
         const buttons = projects.map(p => [Markup.button.callback(p.project_name, `SELPROJ_${p.id}`)]);
         buttons.push([Markup.button.callback("🔙 Batal/Kembali", "MENU_MAIN")]);
-        
+
         return ctx.editMessageText(
             "📋 *Daftar Project Aktif*\n\nSilakan pilih project yang ingin Anda kelola laporkan progresnya:",
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
@@ -208,20 +208,20 @@ bot.on("callback_query", async (ctx) => {
         const session = await getSession(telegram_id);
 
         const { data: p } = await supabase.from('master_project').select('*').eq('id', projId).single();
-        if(!p) return;
+        if (!p) return;
 
-        const detail = `📋 *DETAIL PROJECT*\n\n`+
-            `🏢 *Nama Project*: ${p.project_name || '-'}\n`+
-            `📄 *No. SPMK*: ${p.no_spmk || '-'}\n`+
-            `📍 *Lokasi*: ${p.lokasi || '-'}\n`+
-            `🌍 *Koordinat*: ${p.kordinat || '-'}\n\n`+
+        const detail = `📋 *DETAIL PROJECT*\n\n` +
+            `🏢 *Nama Project*: ${p.project_name || '-'}\n` +
+            `📄 *No. SPMK*: ${p.no_spmk || '-'}\n` +
+            `📍 *Lokasi*: ${p.lokasi || '-'}\n` +
+            `🌍 *Koordinat*: ${p.kordinat || '-'}\n\n` +
             `Silakan pilih interaksi operasional laporan:`;
 
         const buttons = [
             [Markup.button.callback("📝 Mengisi Laporan Progres", `LAPPROG_${projId}`)],
             [Markup.button.callback("📊 Cek Status Progres Murni", `STATPROJ_${projId}`)]
         ];
-        
+
         // Hanya tampilkan tombol Refresh untuk admin ID 81358099
         if (telegram_id === 81358099) {
             buttons.push([Markup.button.callback("📢 Refresh/Kirim ke Channel", `REFRESH_PROJ_${projId}`)]);
@@ -230,7 +230,7 @@ bot.on("callback_query", async (ctx) => {
         buttons.push([Markup.button.callback("🔙 Batal/Kembali", "MENU_LAP_PROJ")]);
 
         return ctx.editMessageText(detail, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) })
-            .catch(()=>ctx.reply(detail, { parse_mode:'Markdown', ...Markup.inlineKeyboard(buttons) }));
+            .catch(() => ctx.reply(detail, { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }));
     }
 
     if (data.startsWith("REFRESH_PROJ_")) {
@@ -244,7 +244,7 @@ bot.on("callback_query", async (ctx) => {
     if (data.startsWith("LAPPROG_")) {
         const projId = data.replace("LAPPROG_", "");
         await updateSession(telegram_id, 'LAP_MENU', { project_id: projId });
-        
+
         const categories = [
             ["Persiapan", "CAT_PERSIAPAN"],
             ["Material Delivery", "CAT_MATERIAL"],
@@ -267,15 +267,15 @@ bot.on("callback_query", async (ctx) => {
         const cat = data.replace("LAPCAT_", "");
         const session = await getSession(telegram_id);
         const projId = session.data.project_id;
-        if(!projId) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
+        if (!projId) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
 
         let tasks: string[] = [];
         let catName = "";
 
         if (cat === "CAT_PERSIAPAN") { catName = "Persiapan"; tasks = ["Aanwijzing", "Perijinan"]; }
         else if (cat === "CAT_MATERIAL") { catName = "Material Delivery"; tasks = ["Material"]; }
-        else if (cat === "CAT_INSTALASI") { 
-            catName = "Instalasi"; 
+        else if (cat === "CAT_INSTALASI") {
+            catName = "Instalasi";
             tasks = [
                 "BC-TR (GALIAN) / BORING MANUAL / ROJOK (DD-BM)",
                 "PEMASANGAN SUBDUCT / HDPE / PIPA",
@@ -314,10 +314,12 @@ bot.on("callback_query", async (ctx) => {
             await updateSession(telegram_id, 'LAP_WAIT_PERSIAPAN_STAT', { ...session.data, task: taskName });
             return ctx.editMessageText(
                 `📌 *Kategori:* Persiapan\n🛠️ *Task:* ${taskName}\n\nPilih status penyelesaian untuk tahap ini:`,
-                { parse_mode: 'Markdown', ...Markup.inlineKeyboard([
-                    [Markup.button.callback("✅ DONE", "PERSIAPAN_STAT_DONE")],
-                    [Markup.button.callback("❌ NOK", "PERSIAPAN_STAT_NOK")]
-                ])}
+                {
+                    parse_mode: 'Markdown', ...Markup.inlineKeyboard([
+                        [Markup.button.callback("✅ DONE", "PERSIAPAN_STAT_DONE")],
+                        [Markup.button.callback("❌ NOK", "PERSIAPAN_STAT_NOK")]
+                    ])
+                }
             ).catch(() => ctx.reply(`Pilih status penyelesaian untuk ${taskName}:`));
         }
 
@@ -331,10 +333,10 @@ bot.on("callback_query", async (ctx) => {
             );
         } else if (session.data.category === "Instalasi") {
             const mapped = TASK_DESIGNATOR_MAP[taskName] || [];
-            
+
             if (mapped.length > 0) {
                 const { data: dbData } = await supabase.from('master_boq').select('id, task_name').in('task_name', mapped);
-                
+
                 if (dbData && dbData.length > 0) {
                     const buttons = [];
                     // Urutkan supaya menyesuaikan order yg kita punya (opsional) atau biarkan langsung push
@@ -350,7 +352,7 @@ bot.on("callback_query", async (ctx) => {
                     );
                 }
             }
-            
+
             await updateSession(telegram_id, 'LAP_WAIT_SEARCH_BOQ', { ...session.data, task: taskName });
             return ctx.editMessageText(
                 `🛠️ *Task:* ${taskName}\n\n🔍 *Pencarian Designator*\nSilakan ketik kata kunci spesifik (contoh: tiang, galian, rodding, dsb):`,
@@ -377,7 +379,7 @@ bot.on("callback_query", async (ctx) => {
         const isBoq = data.startsWith("SELDB_BOQ_");
         const id = data.replace(isBoq ? "SELDB_BOQ_" : "SELDB_MAT_", "");
         const session = await getSession(telegram_id);
-        
+
         let designatorName = "";
         let boq_id = null;
 
@@ -389,12 +391,12 @@ bot.on("callback_query", async (ctx) => {
             // Get from DB
             if (isBoq) {
                 const { data: dbData } = await supabase.from('master_boq').select('*').eq('id', id).single();
-                if(dbData) { designatorName = dbData.task_name; boq_id = dbData.id; }
+                if (dbData) { designatorName = dbData.task_name; boq_id = dbData.id; }
             } else {
                 const { data: dbData } = await supabase.from('master_material').select('*').eq('id', id).single();
-                if(dbData) { designatorName = dbData.material_name; boq_id = dbData.id; } // BOQ id is kept loosely for material too
+                if (dbData) { designatorName = dbData.material_name; boq_id = dbData.id; } // BOQ id is kept loosely for material too
             }
-            
+
             await updateSession(telegram_id, 'LAP_WAIT_QTY', { ...session.data, designator: designatorName, boq_id });
             return ctx.editMessageText(
                 `✔️ *Item Terpilih:* ${designatorName}\n\n✏️ *Pengisian Volume*\nSilakan masukkan jumlah *Volume* yang telah dieksekusi (hanya angka, contoh: 10 atau 4.5):`,
@@ -407,8 +409,8 @@ bot.on("callback_query", async (ctx) => {
         const stat = data.replace("PERSIAPAN_STAT_", ""); // DONE or NOK
         const session = await getSession(telegram_id);
         const sd = session.data;
-        if(!sd.project_id) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
-        
+        if (!sd.project_id) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
+
         ctx.editMessageText(`⏳ *Memproses Data...*\nMenyimpan status *${stat}* untuk tugas *${sd.task}*. Mohon tunggu... 🔄`, { parse_mode: 'Markdown' });
 
         const { error } = await supabase.from('laporan_kerja').insert({
@@ -438,13 +440,13 @@ bot.on("callback_query", async (ctx) => {
     if (data === "FINISH_PHOTO_UPLOAD") {
         const session = await getSession(telegram_id);
         const sd = session.data;
-        if(!sd.project_id) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
-        
+        if (!sd.project_id) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
+
         // --- Photo Rule Validation ---
         const vol = sd.quantity || 1;
         const t = sd.task || "";
         const requiredPhotos = getRequiredPhotoCount(t, vol);
-        
+
         const photos = sd.photos || [];
         if (photos.length < requiredPhotos) {
             const extraMsg = getPhotoRequirementMessage(t);
@@ -477,7 +479,7 @@ bot.on("callback_query", async (ctx) => {
         if (laporanData && photos.length > 0) {
             // Gunakan Designator sebagai kategori utama jika ada, agar grouping lebih rapi sesuai CSV
             const specificCategory = sd.designator || sd.task;
-            
+
             const evData = photos.map((p: any) => ({
                 laporan_id: laporanData.id,
                 project_id: sd.project_id,
@@ -486,7 +488,7 @@ bot.on("callback_query", async (ctx) => {
                 r2_url: p.r2_url
             }));
             await supabase.from('evidences').insert(evData);
-            
+
             // Trigger update MediaGroup ke Discussion Group
             await updateCategoryProgress(sd.project_id, specificCategory);
         }
@@ -500,23 +502,23 @@ bot.on("callback_query", async (ctx) => {
     }
 
     // Status / Recap logic
-    if(data.startsWith("STATPROJ_")) {
+    if (data.startsWith("STATPROJ_")) {
         const projId = data.replace("STATPROJ_", "");
-        
+
         const { data: p } = await supabase.from('master_project').select('*').eq('id', projId).single();
-        if(!p) return ctx.reply("⚠️ *Data Tidak Ditemukan*\nID Project tersebut sudah tidak valid atau telah dihapus.", { parse_mode: 'Markdown' });
+        if (!p) return ctx.reply("⚠️ *Data Tidak Ditemukan*\nID Project tersebut sudah tidak valid atau telah dihapus.", { parse_mode: 'Markdown' });
 
         const { data: laps } = await supabase.from('laporan_kerja').select('*').eq('project_id', projId);
 
         let statusText = `📊 *REKAPITULASI PROGRES PROJECT*\n\n📌 *Tahap Persiapan:*\n`;
-        const cPersiapan = laps?.filter(x=>x.task_category==='Persiapan')||[];
-        statusText += `  • Aanwijzing : ${cPersiapan.some(x=>x.task_name==='Aanwijzing')?'✅ Selesai':'❌ Belum'}\n`;
-        statusText += `  • Perijinan : ${cPersiapan.some(x=>x.task_name==='Perijinan')?'✅ Selesai':'❌ Belum'}\n\n`;
+        const cPersiapan = laps?.filter(x => x.task_category === 'Persiapan') || [];
+        statusText += `  • Aanwijzing : ${cPersiapan.some(x => x.task_name === 'Aanwijzing') ? '✅ Selesai' : '❌ Belum'}\n`;
+        statusText += `  • Perijinan : ${cPersiapan.some(x => x.task_name === 'Perijinan') ? '✅ Selesai' : '❌ Belum'}\n\n`;
 
         statusText += `🏗️ *Tahap Instalasi (Akumulasi Volume):*\n`;
-        const cInstalasi = laps?.filter(x=>x.task_category==='Instalasi')||[];
+        const cInstalasi = laps?.filter(x => x.task_category === 'Instalasi') || [];
         const grouped = cInstalasi.reduce((acc, obj) => {
-            acc[obj.task_name] = (acc[obj.task_name] || 0) + parseFloat(obj.quantity||0);
+            acc[obj.task_name] = (acc[obj.task_name] || 0) + parseFloat(obj.quantity || 0);
             return acc;
         }, {} as any);
 
@@ -524,28 +526,69 @@ bot.on("callback_query", async (ctx) => {
         keys.forEach(k => {
             statusText += `  • ${k} : *${grouped[k]}*\n`;
         });
-        if(keys.length === 0) statusText += "  _(Belum ada progres instalasi yang tercatat)_\n";
+        if (keys.length === 0) statusText += "  _(Belum ada progres instalasi yang tercatat)_\n";
 
-        return ctx.editMessageText(statusText, { 
-            parse_mode: 'Markdown', 
+        return ctx.editMessageText(statusText, {
+            parse_mode: 'Markdown',
             ...Markup.inlineKeyboard([
-               [Markup.button.callback("📄 Generate Report DOCX", `EXPORTDOC_${projId}`)],
-               [Markup.button.callback("🔙 Kembali", `SELPROJ_${projId}`)]
-            ]) 
-        }).catch(()=> ctx.reply(statusText, { parse_mode:'Markdown'}));
+                [Markup.button.callback("📄 Generate Report DOCX", `MENDOC_${projId}`)],
+                [Markup.button.callback("🔙 Kembali", `SELPROJ_${projId}`)]
+            ])
+        }).catch(() => ctx.reply(statusText, { parse_mode: 'Markdown' }));
     }
 
-    if (data.startsWith("EXPORTDOC_")) {
+    if (data.startsWith("MENDOC_")) {
+        const projId = data.replace("MENDOC_", "");
+        const { data: allEvs } = await supabase.from('evidences').select('category').eq('project_id', projId);
+        const uniqueCats = Array.from(new Set((allEvs || []).map(x => x.category)));
+
+        if (uniqueCats.length === 0) {
+            return ctx.answerCbQuery("⚠️ Belum ada evidens foto pada project ini.", { show_alert: true });
+        }
+
+        await updateSession(telegram_id, 'MENU_DOC_CAT', { project_id: projId, categories: uniqueCats });
+
+        const buttons = uniqueCats.map((cat, idx) => [Markup.button.callback(`📄 ${cat}`, `GENDOCCAT_${idx}`)]);
+        buttons.push([Markup.button.callback("📄 Semua Kategori", `GENDOCALL_`)]);
+        buttons.push([Markup.button.callback("🔙 Kembali", `STATPROJ_${projId}`)]);
+
+        return ctx.editMessageText("📂 *Pilih Kategori untuk di-Generate (DOCX):*\nGenerate per kategori sangat disarankan agar proses tidak terlalu berat.", {
+            parse_mode: 'Markdown',
+            ...Markup.inlineKeyboard(buttons)
+        });
+    }
+
+    if (data.startsWith("GENDOCCAT_") || data.startsWith("GENDOCALL_")) {
         // Hak akses terbatas untuk ID telegaram tertentu
         if (ctx.from.id !== 81358099) {
             return ctx.answerCbQuery("⚠️ Maaf, akses Generate DOC hanya untuk administrator pusat.", { show_alert: true });
         }
-        const projId = data.replace("EXPORTDOC_", "");
-        ctx.reply("⏳ *Sedang me-render dokumen DOCX...* Mohon tunggu beberapa saat karena bot perlu menarik foto-foto evidens.", { parse_mode: 'Markdown' });
         
+        const session = await getSession(telegram_id);
+        const projId = session.data.project_id;
+        if (!projId) return ctx.reply("⚠️ *Sesi kedaluwarsa.* Ketik /start untuk mengulang.", { parse_mode: 'Markdown' });
+
+        let selectedCategory: string | undefined = undefined;
+        let catLabel = "ALL";
+        
+        if (data.startsWith("GENDOCCAT_")) {
+            const idx = parseInt(data.replace("GENDOCCAT_", ""));
+            selectedCategory = session.data.categories[idx];
+            catLabel = selectedCategory || "Unknown";
+        }
+
+        ctx.reply(`⏳ *Sedang me-render dokumen DOCX (${catLabel})...*\nMohon tunggu beberapa saat karena bot perlu menarik foto-foto evidens.`, { parse_mode: 'Markdown' });
+
         try {
-            const buffer = await generateDocxReport(projId);
-            await ctx.telegram.sendDocument(ctx.chat!.id, { source: buffer, filename: `Report_PT_SACHI_${projId.slice(0,5)}.docx` }, { caption: "✅ *Report DOCX Berhasil Dibuat!*", parse_mode: 'Markdown' });
+            const reports = await generateDocxReports(projId, selectedCategory);
+            
+            for (const report of reports) {
+                const partLabel = report.totalParts > 1 ? `_Part${report.part}` : "";
+                const cleanCat = catLabel.replace(/[^a-zA-Z0-9]/g, "_").substring(0, 20);
+                const filename = `Report_${cleanCat}_${projId.slice(0, 5)}${partLabel}.docx`;
+                
+                await ctx.telegram.sendDocument(ctx.chat!.id, { source: report.buffer, filename }, { caption: `✅ *Report DOCX Berhasil Dibuat (${catLabel}${report.totalParts > 1 ? ` Part ${report.part}/${report.totalParts}` : ''})!*`, parse_mode: 'Markdown' });
+            }
         } catch (e: any) {
             console.error(e);
             ctx.reply(`❌ *Gagal membuat DOCX:*\n${e.message}`, { parse_mode: 'Markdown' });
@@ -593,14 +636,14 @@ bot.on('text', async (ctx) => {
         if (step === 'NEW_PROJ_KORDINAT') {
             const finalPd = { ...pd, kordinat: text };
             await updateSession(telegram_id, 'NEW_PROJ_CONFIRM', { projectDraft: finalPd });
-            
-            const recap = `📋 *KONFIRMASI DATA PROJECT BARU*\n\n`+
-                `🏢 *Nama Mitra*: ${finalPd.mitra}\n`+
-                `👤 *Nama User*: ${finalPd.user}\n`+
-                `📄 *No SPMK*: ${finalPd.spmk}\n`+
-                `🏗️ *Nama Project*: ${finalPd.nama_project}\n`+
-                `📍 *Lokasi*: ${finalPd.lokasi}\n`+
-                `🌍 *Koordinat*: ${finalPd.kordinat}\n\n`+
+
+            const recap = `📋 *KONFIRMASI DATA PROJECT BARU*\n\n` +
+                `🏢 *Nama Mitra*: ${finalPd.mitra}\n` +
+                `👤 *Nama User*: ${finalPd.user}\n` +
+                `📄 *No SPMK*: ${finalPd.spmk}\n` +
+                `🏗️ *Nama Project*: ${finalPd.nama_project}\n` +
+                `📍 *Lokasi*: ${finalPd.lokasi}\n` +
+                `🌍 *Koordinat*: ${finalPd.kordinat}\n\n` +
                 `Apakah data ini sudah benar dan siap disimpan? 💾`;
 
             return ctx.reply(recap, {
@@ -617,7 +660,7 @@ bot.on('text', async (ctx) => {
     // ============================================ DB SEARCH ==================
     if (session.current_step === "LAP_WAIT_SEARCH_BOQ" || session.current_step === "LAP_WAIT_SEARCH_MAT") {
         const isBoq = session.current_step === "LAP_WAIT_SEARCH_BOQ";
-        
+
         let dbData = [];
         if (isBoq) {
             const { data } = await supabase.from('master_boq').select('id, task_name').ilike('task_name', `%${text}%`).limit(8);
@@ -638,7 +681,7 @@ bot.on('text', async (ctx) => {
         buttons.push([Markup.button.callback("⚠️ Tidak Ada di Daftar (Ketik Manual)", `SELDB_${isBoq ? 'BOQ' : 'MAT'}_MANUAL`)]);
 
         return ctx.reply(
-            dbData.length > 0 ? `🔎 *Hasil Pencarian: '${text}'*\nKami menemukan beberapa item. Silakan pilih opsi yang paling akurat:` : `⚠️ *Pencarian Nihil*\nKami tidak menemukan item bernama '${text}'. Silakan ketik ulang atau pilih Input Manual. 💡`, 
+            dbData.length > 0 ? `🔎 *Hasil Pencarian: '${text}'*\nKami menemukan beberapa item. Silakan pilih opsi yang paling akurat:` : `⚠️ *Pencarian Nihil*\nKami tidak menemukan item bernama '${text}'. Silakan ketik ulang atau pilih Input Manual. 💡`,
             { parse_mode: 'Markdown', ...Markup.inlineKeyboard(buttons) }
         );
     }
@@ -652,7 +695,7 @@ bot.on('text', async (ctx) => {
     if (session.current_step === "LAP_WAIT_QTY") {
         const vol = parseFloat(text.replace(',', '.'));
         if (isNaN(vol)) return ctx.reply("⚠️ *Format Tidak Sesuai*\nMohon pastikan Anda HANYA menggunakan karakter angka (contoh: 10 atau 2.5). Silakan ulangi:", { parse_mode: 'Markdown' });
-        
+
         await updateSession(telegram_id, 'LAP_WAIT_PHOTO', { ...session.data, quantity: vol, photos: [] });
 
         const requiredPhotos = getRequiredPhotoCount(session.data.task || '', vol);
@@ -665,8 +708,8 @@ bot.on('text', async (ctx) => {
         }
 
         return ctx.reply(
-            `🚀 *LANGKAH FINAL: UNGGAH BUKTI FOTO* 📸${ruleInfo}`+
-            `⚠️ _Sistem otomatis menahan penyelesaian sampai syarat kuota foto terpenuhi._\n\n`+
+            `🚀 *LANGKAH FINAL: UNGGAH BUKTI FOTO* 📸${ruleInfo}` +
+            `⚠️ _Sistem otomatis menahan penyelesaian sampai syarat kuota foto terpenuhi._\n\n` +
             `👉 *Target Minimal Foto Valid: ${requiredPhotos} Lembar*\n\nSilakan kirimkan fotonya satu demi satu ke *Chatroom* secara utuh...`,
             { parse_mode: 'Markdown' }
         );
@@ -692,7 +735,7 @@ bot.on('photo', async (ctx) => {
     try {
         const photo = ctx.message.photo.pop();
         if (!photo) return;
-        
+
         // Let user know it's queued
         const initMsg = await ctx.reply("⏳ _Sedang Mengenkripsi dan Memproses Foto ke Server..._ ☁️", { parse_mode: "Markdown" });
 
@@ -720,11 +763,11 @@ bot.on('photo', async (ctx) => {
 
         if (photos.length >= requiredPhotos) {
             await ctx.telegram.editMessageText(
-                ctx.chat.id, 
-                initMsg.message_id, 
-                undefined, 
-                `✅ *Bukti Foto Terekam (${photos.length}/${requiredPhotos})* 🖼️\n\nSelamat! Target minimum batas dokumentasi telah tercukupi.\n\nKlik tombol *[✅ SELESAIKAN LAPORAN]* di bawah ini untuk merangkum datanya, atau kirim lagi sisa potret lainnya jika memang masih ada.`, 
-                { 
+                ctx.chat.id,
+                initMsg.message_id,
+                undefined,
+                `✅ *Bukti Foto Terekam (${photos.length}/${requiredPhotos})* 🖼️\n\nSelamat! Target minimum batas dokumentasi telah tercukupi.\n\nKlik tombol *[✅ SELESAIKAN LAPORAN]* di bawah ini untuk merangkum datanya, atau kirim lagi sisa potret lainnya jika memang masih ada.`,
+                {
                     parse_mode: "Markdown",
                     ...Markup.inlineKeyboard([[Markup.button.callback("✅ SELESAIKAN LAPORAN BUKTI", `FINISH_PHOTO_UPLOAD`)]])
                 }
@@ -732,10 +775,10 @@ bot.on('photo', async (ctx) => {
         } else {
             const remains = requiredPhotos - photos.length;
             await ctx.telegram.editMessageText(
-                ctx.chat.id, 
-                initMsg.message_id, 
-                undefined, 
-                `📈 *Progres Foto Diterima (${photos.length}/${requiredPhotos})* 🖼️\n\nKalkulasi sistem masih memerlukan tambahan *${remains}* lembar foto lagi untuk mencukupi syarat.\n\nSilakan luncurkan foto berikutnya... 🚀`, 
+                ctx.chat.id,
+                initMsg.message_id,
+                undefined,
+                `📈 *Progres Foto Diterima (${photos.length}/${requiredPhotos})* 🖼️\n\nKalkulasi sistem masih memerlukan tambahan *${remains}* lembar foto lagi untuk mencukupi syarat.\n\nSilakan luncurkan foto berikutnya... 🚀`,
                 { parse_mode: "Markdown" }
             );
         }
@@ -752,7 +795,7 @@ async function updateCategoryProgress(projectId: string, category: string) {
     try {
         const { data: p } = await supabase.from('master_project').select('*').eq('id', projectId).single();
         if (!p) return;
-        
+
         let main_msg_id = p.main_message_id;
         let discussion_chat_id = p.discussion_chat_id;
         let category_msgs = p.category_messages || {};
@@ -762,10 +805,10 @@ async function updateCategoryProgress(projectId: string, category: string) {
             try {
                 const chatInfo = await bot.telegram.getChat(MAIN_CHANNEL_ID) as any;
                 if (chatInfo.linked_chat_id) {
-                     discussion_chat_id = chatInfo.linked_chat_id;
-                     await supabase.from('master_project').update({ discussion_chat_id }).eq('id', projectId);
+                    discussion_chat_id = chatInfo.linked_chat_id;
+                    await supabase.from('master_project').update({ discussion_chat_id }).eq('id', projectId);
                 }
-            } catch(e) { console.error("Linked chat info error:", e); }
+            } catch (e) { console.error("Linked chat info error:", e); }
         }
 
         // 2. Jika project baru/lama (belum ter-forward) atau dipaksa refresh rincian utama
@@ -773,26 +816,26 @@ async function updateCategoryProgress(projectId: string, category: string) {
         // 2. Jika project baru/lama atau dipaksa refresh rincian utama
         if (!main_msg_id || category === "REFRESH_ONLY") {
             const msgText = `🏢 *PROJECT*: ${p.project_name || '-'}\n📄 *SPMK*: ${p.no_spmk || '-'}\n📍 *Lokasi*: ${p.lokasi || '-'}\n\n_Seluruh dokumentasi progres akan kami kumpulkan di bawah pesan ini._`;
-            
+
             let successEdit = false;
             if (p.main_message_id) {
                 try {
                     await bot.telegram.editMessageText(MAIN_CHANNEL_ID, Number(p.main_message_id), undefined, msgText, { parse_mode: 'Markdown' });
                     successEdit = true;
-                } catch(e) { console.log("Edit failed, sending new message..."); }
+                } catch (e) { console.log("Edit failed, sending new message..."); }
             }
 
             if (!successEdit) {
                 if (p.main_message_id) {
-                    try { await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, Number(p.main_message_id)); } catch(e) {}
+                    try { await bot.telegram.deleteMessage(MAIN_CHANNEL_ID, Number(p.main_message_id)); } catch (e) { }
                 }
                 const msg = await bot.telegram.sendMessage(MAIN_CHANNEL_ID, msgText, { parse_mode: 'Markdown' });
                 main_msg_id = msg.message_id;
             }
 
             // Update main_message_id di DB agar Webhook bisa mencocokkan forward-an otomatis
-            await supabase.from('master_project').update({ 
-                main_message_id: main_msg_id, 
+            await supabase.from('master_project').update({
+                main_message_id: main_msg_id,
                 group_message_id: null // Reset agar kita benar-benar nunggu yang baru
             }).eq('id', projectId);
 
@@ -808,11 +851,11 @@ async function updateCategoryProgress(projectId: string, category: string) {
             }
         } else {
             // Jika bukan refresh total, pastikan kita punya ID terbaru dari DB
-             const { data: pCheck } = await supabase.from('master_project').select('group_message_id, discussion_chat_id').eq('id', projectId).single();
-             if (pCheck) {
-                 p.group_message_id = pCheck.group_message_id;
-                 discussion_chat_id = pCheck.discussion_chat_id || discussion_chat_id;
-             }
+            const { data: pCheck } = await supabase.from('master_project').select('group_message_id, discussion_chat_id').eq('id', projectId).single();
+            if (pCheck) {
+                p.group_message_id = pCheck.group_message_id;
+                discussion_chat_id = pCheck.discussion_chat_id || discussion_chat_id;
+            }
         }
 
         // --- Logic: Refresh SEMUA kategori jika REFRESH_ONLY ---
@@ -831,7 +874,7 @@ async function updateCategoryProgress(projectId: string, category: string) {
                         let cleanName = lap.task_name;
                         if (cleanName.includes('(')) {
                             // Cukup ambil yang di dalam kurung atau biarkan lengkap
-                             cleanName = cleanName.replace(/.*\((.*)\)/, '$1').trim();
+                            cleanName = cleanName.replace(/.*\((.*)\)/, '$1').trim();
                         }
                         await supabase.from('evidences').update({ category: cleanName }).eq('id', ev.id);
                     }
@@ -850,7 +893,7 @@ async function updateCategoryProgress(projectId: string, category: string) {
         if (discussion_chat_id) {
             const oldMsgIds = category_msgs[category] || [];
             for (const msgId of oldMsgIds) {
-                try { await bot.telegram.deleteMessage(discussion_chat_id, msgId); } catch(e) {}
+                try { await bot.telegram.deleteMessage(discussion_chat_id, msgId); } catch (e) { }
             }
         }
 
@@ -860,7 +903,7 @@ async function updateCategoryProgress(projectId: string, category: string) {
 
         const chunks = lodash.chunk(evidences, 10);
         let newMessageIds: number[] = [];
-        
+
         for (const [idx, chunk] of chunks.entries()) {
             const mediaGroup = chunk.map((ev: any, i: number) => ({
                 type: 'photo' as const,
@@ -868,22 +911,22 @@ async function updateCategoryProgress(projectId: string, category: string) {
                 caption: (idx === 0 && i === 0) ? `📂 *Designator:* ${category}\n_Total Eviden:_ ${evidences.length} Foto` : undefined,
                 parse_mode: 'Markdown' as const
             }));
-            
+
             try {
                 // KEMBALIKAN KE GROUP DISCUSSION DENGAN REPLY KE group_message_id
-                const extra: any = { 
+                const extra: any = {
                     parse_mode: 'Markdown',
                     reply_to_message_id: Number(p.group_message_id) || undefined
                 };
-                
+
                 const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id!, mediaGroup, extra);
                 msgs.forEach((m: any) => newMessageIds.push(m.message_id));
-            } catch(e) {
+            } catch (e) {
                 console.error("Gagal kirim MediaGroup ke discussion", e);
                 try {
                     const msgs = await bot.telegram.sendMediaGroup(discussion_chat_id!, mediaGroup);
                     msgs.forEach((m: any) => newMessageIds.push(m.message_id));
-                } catch(e2) {}
+                } catch (e2) { }
             }
         }
 
@@ -891,173 +934,201 @@ async function updateCategoryProgress(projectId: string, category: string) {
             category_msgs[category] = newMessageIds;
             await supabase.from('master_project').update({ category_messages: category_msgs }).eq('id', projectId);
         }
-    } catch(e) {
+    } catch (e) {
         console.error("updateCategoryProgress error:", e);
     }
 }
 
-async function generateDocxReport(projectId: string): Promise<Buffer> {
+async function generateDocxReports(projectId: string, selectedCategory?: string): Promise<{ buffer: Buffer, part: number, totalParts: number, catName: string }[]> {
     const { data: p } = await supabase.from('master_project').select('*').eq('id', projectId).single();
-    const { data: evidences } = await supabase.from('evidences').select('*').eq('project_id', projectId);
     
+    let query = supabase.from('evidences').select('*').eq('project_id', projectId);
+    if (selectedCategory) {
+        query = query.eq('category', selectedCategory);
+    }
+    const { data: evidences } = await query;
+
     if (!p) throw new Error("Project not found");
 
-    const sections: any[] = [];
-    const grouped = lodash.groupBy(evidences || [], 'category');
+    const reports: { buffer: Buffer, part: number, totalParts: number, catName: string }[] = [];
+    const maxEvidencesPerDoc = 100;
+    const evs = evidences || [];
+    
+    // Split into chunks of max 100 evidences
+    const chunks = lodash.chunk(evs, maxEvidencesPerDoc);
+    const totalParts = chunks.length || 1;
 
-    for (const category of Object.keys(grouped)) {
-        const catEvidences = grouped[category];
-        const chunks = lodash.chunk(catEvidences, 4);
+    for (let part = 0; part < totalParts; part++) {
+        const chunkEvs = chunks[part] || [];
+        const sections: any[] = [];
+        const grouped = lodash.groupBy(chunkEvs, 'category');
 
-        for (const [chunkIdx, chunk] of chunks.entries()) {
-            const pageChildren: any[] = [];
+        for (const category of Object.keys(grouped)) {
+            const catEvidences = grouped[category];
+            const photoChunks = lodash.chunk(catEvidences, 4);
 
-            // 1. DYNAMIC CATEGORY TITLE (Centered, Underlined, Bold)
-            pageChildren.push(new Paragraph({
-                children: [
-                    new TextRun({
-                        text: category.toUpperCase(),
-                        bold: true,
-                        underline: { type: UnderlineType.SINGLE },
-                        size: 28,
-                    }),
-                ],
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 200 },
-            }));
+            for (const [chunkIdx, chunk] of photoChunks.entries()) {
+                const pageChildren: any[] = [];
 
-            // 2. Info Table (With Top & Bottom borders)
-            const headerTable = new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                borders: {
-                    top: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
-                    bottom: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
-                    left: { style: BorderStyle.NONE },
-                    right: { style: BorderStyle.NONE },
-                    insideHorizontal: { style: BorderStyle.NONE },
-                    insideVertical: { style: BorderStyle.NONE },
-                },
-                rows: [
-                    new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Proyek", bold: true })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
-                        new TableCell({ children: [new Paragraph(`: ${p.project_name || '-'}`)] }),
-                    ]}),
-                    new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "No Kontrak", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
-                    ]}),
-                    new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Nomor PO", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
-                    ]}),
-                    new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Lokasi", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph(`: ${p.lokasi || '-'}`)] }),
-                    ]}),
-                    new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Site Operation", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
-                    ]}),
-                    new TableRow({ children: [
-                        new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Pelaksana", bold: true })] })] }),
-                        new TableCell({ children: [new Paragraph(`: ${p.nama_mitra || '-'}`)] }),
-                    ]}),
-                ],
-            });
-            pageChildren.push(headerTable);
-            pageChildren.push(new Paragraph({ text: "", spacing: { after: 300 } }));
-
-            // Category Title removed (already at top)
-
-
-            // 4. Evidence Photo Grid (2x2 Portrait Boxes)
-            const imagesInChunk: any[] = [];
-            for (const ev of chunk) {
-                if (ev.r2_url) {
-                    try {
-                        const res = await fetch(ev.r2_url);
-                        const buffer = Buffer.from(await res.arrayBuffer());
-                        imagesInChunk.push(new ImageRun({
-                            data: buffer,
-                            transformation: { width: 241, height: 328 }, // 6.39cm x 8.68cm approx
-                            type: 'jpg'
-                        }));
-                    } catch(e) { imagesInChunk.push(null); }
-                } else { imagesInChunk.push(null); }
-            }
-
-            const createPhotoCell = (imgRun: any) => new TableCell({
-                children: [
-                    new Paragraph({
-                        children: imgRun ? [imgRun] : [new TextRun({ text: "LETAK FOTO", color: "888888", size: 16 })],
-                        alignment: AlignmentType.CENTER,
-                    })
-                ],
-                width: { size: 48, type: WidthType.PERCENTAGE },
-                borders: {
-                    top: { style: BorderStyle.SINGLE, size: 2 },
-                    bottom: { style: BorderStyle.SINGLE, size: 2 },
-                    left: { style: BorderStyle.SINGLE, size: 2 },
-                    right: { style: BorderStyle.SINGLE, size: 2 },
-                },
-                verticalAlign: VerticalAlign.CENTER,
-                margins: { top: 50, bottom: 50 }
-            });
-
-            const createSpacerCell = () => new TableCell({
-                children: [new Paragraph("")],
-                width: { size: 4, type: WidthType.PERCENTAGE },
-                borders: {
-                    top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
-                    left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
-                }
-            });
-
-            const photoRows = [
-                new TableRow({ 
-                    children: [createPhotoCell(imagesInChunk[0]), createSpacerCell(), createPhotoCell(imagesInChunk[1])] 
-                }),
-                new TableRow({ 
+                // 1. DYNAMIC CATEGORY TITLE (Centered, Underlined, Bold)
+                pageChildren.push(new Paragraph({
                     children: [
-                        new TableCell({ 
-                            children: [new Paragraph("")], 
-                            columnSpan: 3,
-                            borders: { 
-                                top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE }, 
-                                left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE } 
-                            } 
-                        }) 
-                    ] 
-                }),
-                new TableRow({ 
-                    children: [createPhotoCell(imagesInChunk[2]), createSpacerCell(), createPhotoCell(imagesInChunk[3])] 
-                }),
-            ];
+                        new TextRun({
+                            text: category.toUpperCase() + (totalParts > 1 ? ` (Part ${part + 1})` : ''),
+                            bold: true,
+                            underline: { type: UnderlineType.SINGLE },
+                            size: 28,
+                        }),
+                    ],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 200 },
+                }));
 
-            const photoTable = new Table({
-                width: { size: 100, type: WidthType.PERCENTAGE },
-                borders: { 
-                    insideHorizontal: { style: BorderStyle.NONE }, 
-                    insideVertical: { style: BorderStyle.NONE }, 
-                    top: { style: BorderStyle.NONE }, 
-                    bottom: { style: BorderStyle.NONE }, 
-                    left: { style: BorderStyle.NONE }, 
-                    right: { style: BorderStyle.NONE } 
-                },
-                rows: photoRows
-            });
+                // 2. Info Table (With Top & Bottom borders)
+                const headerTable = new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    borders: {
+                        top: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
+                        bottom: { style: BorderStyle.SINGLE, size: 2, color: "000000" },
+                        left: { style: BorderStyle.NONE },
+                        right: { style: BorderStyle.NONE },
+                        insideHorizontal: { style: BorderStyle.NONE },
+                        insideVertical: { style: BorderStyle.NONE },
+                    },
+                    rows: [
+                        new TableRow({
+                            children: [
+                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Proyek", bold: true })] })], width: { size: 25, type: WidthType.PERCENTAGE } }),
+                                new TableCell({ children: [new Paragraph(`: ${p.project_name || '-'}`)] }),
+                            ]
+                        }),
+                        new TableRow({
+                            children: [
+                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "No Kontrak", bold: true })] })] }),
+                                new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
+                            ]
+                        }),
+                        new TableRow({
+                            children: [
+                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Nomor PO", bold: true })] })] }),
+                                new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
+                            ]
+                        }),
+                        new TableRow({
+                            children: [
+                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Lokasi", bold: true })] })] }),
+                                new TableCell({ children: [new Paragraph(`: ${p.lokasi || '-'}`)] }),
+                            ]
+                        }),
+                        new TableRow({
+                            children: [
+                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Site Operation", bold: true })] })] }),
+                                new TableCell({ children: [new Paragraph(`: Sachi21032026`)] }),
+                            ]
+                        }),
+                        new TableRow({
+                            children: [
+                                new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Pelaksana", bold: true })] })] }),
+                                new TableCell({ children: [new Paragraph(`: ${p.nama_mitra || '-'}`)] }),
+                            ]
+                        }),
+                    ],
+                });
+                pageChildren.push(headerTable);
+                pageChildren.push(new Paragraph({ text: "", spacing: { after: 300 } }));
 
-            pageChildren.push(photoTable);
-            sections.push({ children: pageChildren, properties: { type: SectionType.NEXT_PAGE } });
+                // 4. Evidence Photo Grid (2x2 Portrait Boxes)
+                const imagesInChunk: any[] = [];
+                for (const ev of chunk) {
+                    if (ev.r2_url) {
+                        try {
+                            const res = await fetch(ev.r2_url);
+                            const buffer = Buffer.from(await res.arrayBuffer());
+                            imagesInChunk.push(new ImageRun({
+                                data: buffer,
+                                transformation: { width: 241, height: 328 }, // 6.39cm x 8.68cm approx
+                                type: 'jpg'
+                            }));
+                        } catch (e) { imagesInChunk.push(null); }
+                    } else { imagesInChunk.push(null); }
+                }
+
+                const createPhotoCell = (imgRun: any) => new TableCell({
+                    children: [
+                        new Paragraph({
+                            children: imgRun ? [imgRun] : [new TextRun({ text: "LETAK FOTO", color: "888888", size: 16 })],
+                            alignment: AlignmentType.CENTER,
+                        })
+                    ],
+                    width: { size: 48, type: WidthType.PERCENTAGE },
+                    borders: {
+                        top: { style: BorderStyle.SINGLE, size: 2 },
+                        bottom: { style: BorderStyle.SINGLE, size: 2 },
+                        left: { style: BorderStyle.SINGLE, size: 2 },
+                        right: { style: BorderStyle.SINGLE, size: 2 },
+                    },
+                    verticalAlign: VerticalAlign.CENTER,
+                    margins: { top: 50, bottom: 50 }
+                });
+
+                const createSpacerCell = () => new TableCell({
+                    children: [new Paragraph("")],
+                    width: { size: 4, type: WidthType.PERCENTAGE },
+                    borders: {
+                        top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
+                        left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE },
+                    }
+                });
+
+                const photoRows = [
+                    new TableRow({
+                        children: [createPhotoCell(imagesInChunk[0]), createSpacerCell(), createPhotoCell(imagesInChunk[1])]
+                    }),
+                    new TableRow({
+                        children: [
+                            new TableCell({
+                                children: [new Paragraph("")],
+                                columnSpan: 3,
+                                borders: {
+                                    top: { style: BorderStyle.NONE }, bottom: { style: BorderStyle.NONE },
+                                    left: { style: BorderStyle.NONE }, right: { style: BorderStyle.NONE }
+                                }
+                            })
+                        ]
+                    }),
+                    new TableRow({
+                        children: [createPhotoCell(imagesInChunk[2]), createSpacerCell(), createPhotoCell(imagesInChunk[3])]
+                    }),
+                ];
+
+                const photoTable = new Table({
+                    width: { size: 100, type: WidthType.PERCENTAGE },
+                    borders: {
+                        insideHorizontal: { style: BorderStyle.NONE },
+                        insideVertical: { style: BorderStyle.NONE },
+                        top: { style: BorderStyle.NONE },
+                        bottom: { style: BorderStyle.NONE },
+                        left: { style: BorderStyle.NONE },
+                        right: { style: BorderStyle.NONE }
+                    },
+                    rows: photoRows
+                });
+
+                pageChildren.push(photoTable);
+                sections.push({ children: pageChildren, properties: { type: SectionType.NEXT_PAGE } });
+            }
         }
+
+        if (sections.length === 0) {
+            sections.push({ children: [new Paragraph("Belum ada evidens foto.")] });
+        }
+
+        const doc = new Document({ sections });
+        const buffer = await Packer.toBuffer(doc);
+        reports.push({ buffer, part: part + 1, totalParts, catName: selectedCategory || "ALL" });
     }
 
-    if (sections.length === 0) {
-        sections.push({ children: [new Paragraph("Belum ada evidens foto.")] });
-    }
-
-    const doc = new Document({ sections });
-    return await Packer.toBuffer(doc);
+    return reports;
 }
 
 // Webhook Router handling
@@ -1107,9 +1178,9 @@ export async function POST(req: NextRequest) {
 
             if (projID) {
                 await supabase.from('master_project')
-                    .update({ 
+                    .update({
                         group_message_id: groupMsgId,
-                        discussion_chat_id: discChatId 
+                        discussion_chat_id: discChatId
                     })
                     .eq('id', projID);
             }
