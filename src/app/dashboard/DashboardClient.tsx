@@ -15,12 +15,15 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
         setSelectedDesignator(null);
     };
 
+    // Use local state so we can edit/delete without reloading
+    const [localLaporan, setLocalLaporan] = useState(laporan);
+
     // Data Helpers
     const totalProjects = projects.length;
-    const totalReports = laporan.length;
+    const totalReports = localLaporan.length;
     
     const selectedProjectInfo = projects.find(p => p.id === selectedProjectId);
-    const displayedLaporan = selectedProjectInfo ? laporan.filter(l => l.project_name === selectedProjectInfo.project_name) : [];
+    const displayedLaporan = selectedProjectInfo ? localLaporan.filter(l => l.project_name === selectedProjectInfo.project_name) : [];
 
     // Pengelompokan Kategori
     const reportsByCategory = displayedLaporan.reduce((acc: Record<string, any[]>, rep: any) => {
@@ -48,6 +51,13 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
     const handleDownloadZip = () => {
         if (!selectedProjectId) return;
         window.open(`/api/download?id=${selectedProjectId}`, '_blank');
+    };
+
+    // Handler klik fitur Download DOCX
+    const handleDownloadDocx = (cat?: string) => {
+        if (!selectedProjectId) return;
+        const url = `/api/download-docx?id=${selectedProjectId}${cat ? `&cat=${encodeURIComponent(cat)}` : ''}`;
+        window.open(url, '_blank');
     };
 
     return (
@@ -111,11 +121,16 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
                         <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100">
                             <h3 className="font-bold text-lg mb-4">Laporan Terbaru Secara Keseluruhan</h3>
                             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                                {laporan.slice(0,4).map((item: any) => (
-                                    <ReportCard key={item.id} item={item} />
+                                {localLaporan.slice(0,4).map((item: any) => (
+                                    <ReportCard 
+                                        key={item.id} 
+                                        item={item} 
+                                        onDelete={(id) => setLocalLaporan(prev => prev.filter(l => l.id !== id))}
+                                        onEdit={(id, updates) => setLocalLaporan(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l))}
+                                    />
                                 ))}
                             </div>
-                            {laporan.length === 0 && <p className="text-slate-400 italic">Belum ada laporan dari Telegram Bot.</p>}
+                            {localLaporan.length === 0 && <p className="text-slate-400 italic">Belum ada laporan dari Telegram Bot.</p>}
                         </div>
                     </div>
                 )}
@@ -160,8 +175,11 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
                                         </h1>
                                         <p className="text-slate-500 font-medium">Laporan Dikelompokkan Berdasarkan Modul Kategori</p>
                                     </div>
-                                    <div className="flex gap-3">
-                                        <button onClick={handleDownloadZip} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold px-5 py-3 rounded-2xl transition border border-emerald-100 flex items-center gap-2">
+                                    <div className="flex flex-col sm:flex-row gap-3">
+                                        <button onClick={() => handleDownloadDocx()} className="bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold px-5 py-3 rounded-2xl transition border border-blue-100 flex items-center justify-center gap-2">
+                                            <span>📄</span> Unduh DOCX Project
+                                        </button>
+                                        <button onClick={handleDownloadZip} className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold px-5 py-3 rounded-2xl transition border border-emerald-100 flex items-center justify-center gap-2">
                                             <span>📥</span> Unduh ZIP Terstruktur
                                         </button>
                                     </div>
@@ -193,10 +211,17 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
                             <>
                                 <header className="mb-8 border-b border-slate-200 pb-6">
                                     <button onClick={() => setSelectedCategory(null)} className="text-sky-600 font-semibold mb-3 hover:underline">&larr; Kembali ke Folder Project</button>
-                                    <div className="flex items-center gap-3 text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">
-                                        <span>📂 {selectedProjectInfo?.project_name}</span> <span>/</span> <span>📁 {selectedCategory}</span>
+                                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                        <div>
+                                            <div className="flex items-center gap-3 text-sm font-bold text-slate-400 mb-2 uppercase tracking-wide">
+                                                <span>📂 {selectedProjectInfo?.project_name}</span> <span>/</span> <span>📁 {selectedCategory}</span>
+                                            </div>
+                                            <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pilih Subfolder Designator</h1>
+                                        </div>
+                                        <button onClick={() => handleDownloadDocx(selectedCategory!)} className="bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold px-5 py-3 rounded-2xl transition border border-blue-100 flex items-center justify-center gap-2">
+                                            <span>📄</span> Unduh DOCX Kategori Ini
+                                        </button>
                                     </div>
-                                    <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">Pilih Subfolder Designator</h1>
                                 </header>
                                 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -228,7 +253,12 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
                                 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                                     {reportsInDesignator.map((item: any) => (
-                                        <ReportCard key={item.id} item={item} />
+                                        <ReportCard 
+                                            key={item.id} 
+                                            item={item} 
+                                            onDelete={(id) => setLocalLaporan(prev => prev.filter(l => l.id !== id))}
+                                            onEdit={(id, updates) => setLocalLaporan(prev => prev.map(l => l.id === id ? { ...l, ...updates } : l))}
+                                        />
                                     ))}
                                 </div>
                             </>
@@ -251,9 +281,13 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
 
 
 // --- Reusable Component untuk render Card Laporan ---
-function ReportCard({ item }: { item: any }) {
+function ReportCard({ item, onDelete, onEdit }: { item: any, onDelete?: (id: string) => void, onEdit?: (id: string, updates: any) => void }) {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({ quantity: item.quantity || "", notes: item.notes || "" });
+    const [isDeleting, setIsDeleting] = useState(false);
 
     let parsedPhotos: string[] = [];
     if (Array.isArray(item.photo_urls)) {
@@ -295,11 +329,72 @@ function ReportCard({ item }: { item: any }) {
         setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
     };
 
+    const handleDelete = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (!confirm("Yakin ingin menghapus laporan ini? Tindakan ini tidak dapat diurungkan dan akan menyinkronkan foto di Telegram.")) return;
+        
+        setIsDeleting(true);
+        try {
+            const res = await fetch('/api/report/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: item.id })
+            });
+            if (res.ok) {
+                onDelete?.(item.id);
+            } else {
+                alert("Gagal menghapus laporan.");
+            }
+        } catch (e) {
+            alert("Terjadi kesalahan.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    const handleSaveEdit = async () => {
+        try {
+            const res = await fetch('/api/report/edit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ id: item.id, quantity: editForm.quantity, notes: editForm.notes })
+            });
+            if (res.ok) {
+                onEdit?.(item.id, editForm);
+                setIsEditing(false);
+            } else {
+                alert("Gagal menyimpan perubahan.");
+            }
+        } catch (e) {
+            alert("Terjadi kesalahan.");
+        }
+    };
+
+    if (isDeleting) {
+        return <div className="bg-slate-100 rounded-3xl animate-pulse h-64 border border-slate-200"></div>;
+    }
+
     return (
         <>
-            <div className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group flex flex-col">
+            <div className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden flex flex-col relative">
+                {/* Menu Kebab */}
+                <div className="absolute top-2 right-2 z-20">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
+                        className="bg-black/50 hover:bg-black/80 text-white p-2 rounded-full backdrop-blur-sm transition"
+                    >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3zm5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3z"/></svg>
+                    </button>
+                    {isMenuOpen && (
+                        <div className="absolute right-0 mt-2 w-32 bg-white rounded-xl shadow-lg border border-slate-100 py-1 flex flex-col text-sm overflow-hidden" onClick={e => e.stopPropagation()}>
+                            <button className="px-4 py-2 text-left hover:bg-slate-50 font-semibold text-slate-700" onClick={() => { setIsMenuOpen(false); setIsEditing(true); }}>Edit</button>
+                            <button className="px-4 py-2 text-left hover:bg-red-50 font-semibold text-red-600" onClick={(e) => { setIsMenuOpen(false); handleDelete(e); }}>Delete</button>
+                        </div>
+                    )}
+                </div>
+
                 <div 
-                    className="relative aspect-video w-full bg-slate-100 overflow-hidden mt-1 mx-1 rounded-t-[22px] cursor-pointer"
+                    className="relative aspect-video w-full bg-slate-100 overflow-hidden mt-1 mx-1 rounded-t-[22px] cursor-pointer group"
                     onClick={openPreview}
                 >
                     {coverPhoto ? (
@@ -358,6 +453,54 @@ function ReportCard({ item }: { item: any }) {
                     </div>
                 </div>
             </div>
+
+            {/* Edit Modal */}
+            {isEditing && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+                    onClick={() => setIsEditing(false)}
+                >
+                    <div className="bg-white rounded-3xl w-full max-w-sm p-6 shadow-2xl relative" onClick={e => e.stopPropagation()}>
+                        <h3 className="text-xl font-black text-slate-900 mb-4">Edit Laporan</h3>
+                        
+                        <div className="mb-4">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Volume / Quantity</label>
+                            <input 
+                                type="text" 
+                                value={editForm.quantity} 
+                                onChange={e => setEditForm(prev => ({ ...prev, quantity: e.target.value }))}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-semibold text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500"
+                                placeholder="Contoh: 15 Meter"
+                            />
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-xs font-bold text-slate-500 uppercase mb-2">Catatan Tambahan</label>
+                            <textarea 
+                                value={editForm.notes} 
+                                onChange={e => setEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                                className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 min-h-[100px]"
+                                placeholder="Tambahkan catatan jika perlu..."
+                            ></textarea>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button 
+                                onClick={() => setIsEditing(false)}
+                                className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold py-3 rounded-xl transition"
+                            >
+                                Batal
+                            </button>
+                            <button 
+                                onClick={handleSaveEdit}
+                                className="flex-1 bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 rounded-xl transition shadow-md shadow-sky-500/30"
+                            >
+                                Simpan
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Photo Preview Modal */}
             {isPreviewOpen && (
