@@ -15,8 +15,8 @@ export default async function DashboardPage() {
         .from("laporan_kerja")
         .select(`
             *,
-            master_project(project_name, area, site_name),
-            master_boq(task_name)
+            master_project(*),
+            master_boq(*)
         `)
         .order("created_at", { ascending: false });
 
@@ -32,6 +32,7 @@ export default async function DashboardPage() {
     const error = laporanError || projectsError;
 
     if (error) {
+        console.error("Dashboard Supabase Error:", error);
         return (
             <div className="min-h-screen p-10 bg-red-50 text-red-600">
                 <p className="font-semibold text-2xl">Oops! Gagal memuat data dari database.</p>
