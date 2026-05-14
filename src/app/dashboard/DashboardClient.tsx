@@ -391,6 +391,7 @@ function ReportCard({ item }: { item: any }) {
                                 Foto {currentPhotoIndex + 1} dari {photos.length}
                             </div>
                         )}
+                        <p className="text-white mt-8 text-xs break-all bg-black/50 px-2 py-1 rounded">Debug URL: {photos[currentPhotoIndex]}</p>
                     </div>
                 </div>
             )}
