@@ -23,7 +23,10 @@ export async function GET(req: NextRequest) {
             return new NextResponse("Failed to read image body", { status: 500 });
         }
 
-        return new NextResponse(byteArray, {
+        // Convert Uint8Array to Buffer which satisfies Next.js BodyInit type
+        const buffer = Buffer.from(byteArray);
+
+        return new NextResponse(buffer, {
             headers: {
                 "Content-Type": data.ContentType || "image/jpeg",
                 "Cache-Control": "public, max-age=31536000, immutable",
