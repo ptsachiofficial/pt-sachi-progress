@@ -11,27 +11,25 @@ export default async function DashboardPage() {
         .order("created_at", { ascending: false });
 
     // 2. Fetch Laporan
-    // Attempting to fetch from view first. If view doesn't exist, fallback to laporan_kerja
-    const { data: laporanView, error: viewError } = await supabase
-        .from("view_laporan_lengkap")
-        .select("*")
+    const { data: laporanTable, error: laporanError } = await supabase
+        .from("laporan_kerja")
+        .select(`
+            *,
+            master_project(project_name, area, site_name),
+            master_boq(task_name)
+        `)
         .order("created_at", { ascending: false });
 
-    let laporan = laporanView;
-    let fallbackError = null;
+    let laporan = (laporanTable || []).map(item => ({
+        ...item,
+        location: item.master_project?.project_name,
+        project_name: item.master_project?.project_name,
+        area: item.master_project?.area,
+        site_name: item.master_project?.site_name,
+        boq_name: item.master_boq?.task_name,
+    }));
 
-    if (viewError) {
-        console.log("View tidak ditemukan, fallback ke tabel laporan_kerja");
-        const { data: laporanTable, error: tableError } = await supabase
-            .from("laporan_kerja")
-            .select("*")
-            .order("created_at", { ascending: false });
-
-        laporan = laporanTable;
-        fallbackError = tableError;
-    }
-
-    const error = (viewError && fallbackError) || projectsError;
+    const error = laporanError || projectsError;
 
     if (error) {
         return (
@@ -42,6 +40,6 @@ export default async function DashboardPage() {
         );
     }
 
-    return <DashboardClient projects={projects || []} laporan={laporan || []} />;
+    return <DashboardClient projects={projects || []} laporan={laporan} />;
 }
 

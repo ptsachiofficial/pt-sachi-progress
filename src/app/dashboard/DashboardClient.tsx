@@ -252,62 +252,149 @@ export default function DashboardClient({ projects, laporan }: { projects: any[]
 
 // --- Reusable Component untuk render Card Laporan ---
 function ReportCard({ item }: { item: any }) {
-    const photos = Array.isArray(item.photo_urls) ? item.photo_urls : (item.photo_url ? [item.photo_url] : []);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+    const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
+
+    let parsedPhotos: string[] = [];
+    if (Array.isArray(item.photo_urls)) {
+        parsedPhotos = item.photo_urls;
+    } else if (typeof item.photo_urls === 'string') {
+        try { parsedPhotos = JSON.parse(item.photo_urls); } catch (e) {}
+    }
+    if (parsedPhotos.length === 0 && item.photo_url) {
+        parsedPhotos = [item.photo_url];
+    }
+    
+    const photos = parsedPhotos.filter(p => typeof p === 'string' && p.startsWith('http'));
     const coverPhoto = photos.length > 0 ? photos[0] : null;
 
+    const openPreview = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (photos.length > 0) {
+            setCurrentPhotoIndex(0);
+            setIsPreviewOpen(true);
+        }
+    };
+
+    const nextPhoto = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
+    };
+
+    const prevPhoto = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setCurrentPhotoIndex((prev) => (prev - 1 + photos.length) % photos.length);
+    };
+
     return (
-        <div className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group flex flex-col">
-            <div className="relative aspect-video w-full bg-slate-100 overflow-hidden mt-1 mx-1 rounded-t-[22px]">
-                {coverPhoto && typeof coverPhoto === 'string' ? (
-                    <>
-                        <img
-                            src={coverPhoto}
-                            alt="Eviden"
-                            className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
+        <>
+            <div className="bg-white rounded-3xl shadow-sm hover:shadow-xl transition-all duration-300 border border-slate-100 overflow-hidden group flex flex-col">
+                <div 
+                    className="relative aspect-video w-full bg-slate-100 overflow-hidden mt-1 mx-1 rounded-t-[22px] cursor-pointer"
+                    onClick={openPreview}
+                >
+                    {coverPhoto ? (
+                        <>
+                            <img
+                                src={coverPhoto}
+                                alt="Eviden"
+                                className="object-cover w-full h-full group-hover:scale-105 transition-transform duration-700"
+                            />
+                            {photos.length > 1 && (
+                                <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 flex items-center gap-1 rounded-full z-10">
+                                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                    {photos.length}
+                                </div>
+                            )}
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300 flex items-center justify-center">
+                                <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-lg transition-opacity duration-300">
+                                    Lihat Foto
+                                </span>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm font-medium">Tanpa Foto</div>
+                    )}
+                    
+                    <div className="absolute top-2 left-2 z-10">
+                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-md ${item.status === 'nok' ? 'bg-rose-500/90 text-white' : 'bg-emerald-500/90 text-white'}`}>
+                           {item.status === 'nok' ? 'NOK' : (item.status === 'submitted' ? 'DONE' : item.status)}
+                       </span>
+                    </div>
+                </div>
+                
+                <div className="p-5 flex-1 flex flex-col">
+                    <div className="flex justify-between items-start mb-2 gap-2">
+                        <h3 className="font-extrabold text-slate-900 leading-tight line-clamp-2">{item.task_name || "Laporan Lapangan"}</h3>
+                    </div>
+                    
+                    <p className="text-xs text-sky-600 font-bold mb-3 uppercase tracking-wide">{item.task_category || "-"}</p>
+
+                    <div className="bg-slate-50 rounded-xl p-3 mb-4 flex gap-4 text-center divide-x divide-slate-200">
+                        <div className="flex-1">
+                            <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Volume</p>
+                            <p className="text-sm font-black text-slate-700">{item.quantity || "-"}</p>
+                        </div>
+                        <div className="flex-1">
+                             <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Tanggal</p>
+                             <p className="text-xs font-bold text-slate-700 mt-1">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
+                        </div>
+                    </div>
+
+                    <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-400">
+                        <div className="flex items-center gap-1.5">
+                            <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center">👤</div>
+                            ID: {item.telegram_id}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Photo Preview Modal */}
+            {isPreviewOpen && (
+                <div 
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-sm p-4"
+                    onClick={() => setIsPreviewOpen(false)}
+                >
+                    <button 
+                        className="absolute top-4 right-4 text-white hover:text-slate-300 bg-white/10 hover:bg-white/20 rounded-full p-2 transition-colors"
+                        onClick={() => setIsPreviewOpen(false)}
+                    >
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                    </button>
+
+                    {photos.length > 1 && (
+                        <>
+                            <button 
+                                className="absolute left-4 md:left-10 top-1/2 -translate-y-1/2 text-white hover:text-slate-300 bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors"
+                                onClick={prevPhoto}
+                            >
+                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                            <button 
+                                className="absolute right-4 md:right-10 top-1/2 -translate-y-1/2 text-white hover:text-slate-300 bg-white/10 hover:bg-white/20 rounded-full p-3 transition-colors"
+                                onClick={nextPhoto}
+                            >
+                                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                            </button>
+                        </>
+                    )}
+
+                    <div className="relative max-w-5xl max-h-screen w-full flex flex-col items-center justify-center" onClick={(e) => e.stopPropagation()}>
+                        <img 
+                            src={photos[currentPhotoIndex]} 
+                            alt={`Preview ${currentPhotoIndex + 1}`} 
+                            className="max-w-full max-h-[85vh] object-contain rounded-lg shadow-2xl"
                         />
                         {photos.length > 1 && (
-                            <div className="absolute bottom-2 right-2 bg-black/60 backdrop-blur-md text-white text-xs font-bold px-2 py-1 flex items-center gap-1 rounded-full">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                                {photos.length}
+                            <div className="absolute bottom-[-40px] text-white/80 font-medium text-sm bg-black/50 px-4 py-1.5 rounded-full">
+                                Foto {currentPhotoIndex + 1} dari {photos.length}
                             </div>
                         )}
-                    </>
-                ) : (
-                    <div className="w-full h-full flex items-center justify-center text-slate-400 text-sm font-medium">Tanpa Foto</div>
-                )}
-                
-                <div className="absolute top-2 left-2 z-10">
-                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold shadow-sm backdrop-blur-md ${item.status === 'nok' ? 'bg-rose-500/90 text-white' : 'bg-emerald-500/90 text-white'}`}>
-                       {item.status === 'nok' ? 'NOK' : (item.status === 'submitted' ? 'DONE' : item.status)}
-                   </span>
-                </div>
-            </div>
-            
-            <div className="p-5 flex-1 flex flex-col">
-                <div className="flex justify-between items-start mb-2 gap-2">
-                    <h3 className="font-extrabold text-slate-900 leading-tight line-clamp-2">{item.task_name || "Laporan Lapangan"}</h3>
-                </div>
-                
-                <p className="text-xs text-sky-600 font-bold mb-3 uppercase tracking-wide">{item.task_category || "-"}</p>
-
-                <div className="bg-slate-50 rounded-xl p-3 mb-4 flex gap-4 text-center divide-x divide-slate-200">
-                    <div className="flex-1">
-                        <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Volume</p>
-                        <p className="text-sm font-black text-slate-700">{item.quantity || "-"}</p>
-                    </div>
-                    <div className="flex-1">
-                         <p className="text-[10px] text-slate-400 font-bold uppercase mb-0.5">Tanggal</p>
-                         <p className="text-xs font-bold text-slate-700 mt-1">{new Date(item.created_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}</p>
                     </div>
                 </div>
-
-                <div className="mt-auto pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] font-bold text-slate-400">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-5 h-5 rounded-full bg-slate-200 flex items-center justify-center">👤</div>
-                        ID: {item.telegram_id}
-                    </div>
-                </div>
-            </div>
-        </div>
+            )}
+        </>
     );
 }
+
