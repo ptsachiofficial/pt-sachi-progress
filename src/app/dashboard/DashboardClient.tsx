@@ -265,7 +265,16 @@ function ReportCard({ item }: { item: any }) {
         parsedPhotos = [item.photo_url];
     }
     
-    const photos = parsedPhotos.filter(p => typeof p === 'string' && p.startsWith('http'));
+    const photos = parsedPhotos
+        .filter(p => typeof p === 'string' && p.startsWith('http'))
+        .map(p => {
+            if (p.includes('.r2.dev') || p.includes('r2.cloudflarestorage.com')) {
+                const parts = p.split('/');
+                const fileName = parts[parts.length - 1];
+                return `/api/image?file=${fileName}`;
+            }
+            return p;
+        });
     const coverPhoto = photos.length > 0 ? photos[0] : null;
 
     const openPreview = (e: React.MouseEvent) => {
